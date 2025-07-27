@@ -11,7 +11,6 @@ const App = () => {
           <Route path="users" element={<Users />} />
           <Route path="inventory" element={<Inventory />} />
         </Route>
-        {/* Add other routes here if needed */}
       </Routes>
     </BrowserRouter>
   );

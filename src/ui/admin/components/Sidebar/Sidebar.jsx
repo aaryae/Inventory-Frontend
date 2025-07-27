@@ -1,6 +1,6 @@
 import { Boxes, Home, Users, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { image } from "../../../../config/constant/image";
+import Logo from "../../../common/Logo";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
@@ -34,11 +34,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         style={{ background: "#171821" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#21222d]">
+        <div className="flex items-center justify-between px-6  py-3 border-b border-[#21222d]">
           <div className="flex items-center space-x-3">
             {/* <span className="text-xl font-bold tracking-wide">Admin</span> */}
-            <img src={image.logo} alt="" width={150} />
+            <Logo />
           </div>
+
           <button
             onClick={toggleSidebar}
             className="lg:hidden p-1 rounded-md hover:bg-[#21222d] focus:outline-none"
