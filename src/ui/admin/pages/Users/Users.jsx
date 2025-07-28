@@ -1,62 +1,138 @@
-import { Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Eye, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import {
+  deleteUser,
+  getUserById,
+  getUsers,
+  updateUser,
+} from "../../../../services/users/usersService";
 
 const Users = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRole, setSelectedRole] = useState("all");
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    username: "",
+    email: "",
+    role: "",
+  });
 
-  const users = [
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john.doe@example.com",
-      role: "Admin",
-      avatar: "JD",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane.smith@example.com",
-      role: "Manager",
-      avatar: "JS",
-    },
-    {
-      id: 3,
-      name: "Mike Johnson",
-      email: "mike.johnson@example.com",
-      role: "User",
-      avatar: "MJ",
-    },
-    {
-      id: 4,
-      name: "Sarah Wilson",
-      email: "sarah.wilson@example.com",
-      role: "Manager",
-      avatar: "SW",
-    },
-    {
-      id: 5,
-      name: "David Brown",
-      email: "david.brown@example.com",
-      role: "User",
-      avatar: "DB",
-    },
-    {
-      id: 6,
-      name: "China Brown",
-      email: "davidChina@example.com",
-      role: "User",
-      avatar: "DB",
-    },
-  ];
+  // Fetch users on component mount
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await getUsers();
+      if (response.success) {
+        setUsers(response.data || []);
+      } else {
+        toast.error(response.message || "Failed to fetch users");
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to fetch users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewUser = async (userId) => {
+    try {
+      const response = await getUserById(userId);
+      if (response.success) {
+        setSelectedUser(response.data);
+        setShowUserModal(true);
+      } else {
+        toast.error(response.message || "Failed to fetch user details");
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      toast.error("Failed to fetch user details");
+    }
+  };
+
+  const handleEditUser = (user) => {
+    setEditForm({
+      name: user.name || "",
+      email: user.email || "",
+      role: user.role || "",
+    });
+    setSelectedUser(user);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await updateUser(selectedUser.id, editForm);
+      if (response.success) {
+        toast.success("User updated successfully");
+        setShowEditModal(false);
+        fetchUsers();
+      } else {
+        toast.error(response.message || "Failed to update user");
+      }
+    } catch (error) {
+      console.error("Error updating user:", error);
+      toast.error("Failed to update user");
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm("Are you sure you want to delete this user?")) {
+      return;
+    }
+
+    try {
+      const response = await deleteUser(userId);
+      if (response.success) {
+        toast.success("User deleted successfully");
+        fetchUsers(); // Refresh the list
+      } else {
+        toast.error(response.message || "Failed to delete user");
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast.error("Failed to delete user");
+    }
+  };
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = selectedRole === "all" || user.role === selectedRole;
-    return matchesSearch && matchesRole;
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
   });
+
+  const getInitials = (name) => {
+    return (
+      name
+        ?.split(" ")
+        .map((word) => word.charAt(0))
+        .join("")
+        .toUpperCase() || "U"
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto"></div>
+            <p className="mt-4 text-slate-400">Loading users...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -101,21 +177,6 @@ const Users = () => {
               />
             </div>
           </div>
-
-          {/* Role Filter */}
-          <div className="flex space-x-2">
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
-              className="px-4 py-2 rounded-lg focus:outline-none focus:border-cyan-500 text-slate-100 border border-[#21222d]"
-              style={{ background: "#21222d" }}
-            >
-              <option value="all">All Roles</option>
-              <option value="Admin">Admin</option>
-              <option value="Manager">Manager</option>
-              <option value="User">User</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -129,84 +190,98 @@ const Users = () => {
             <thead style={{ background: "#21222d" }}>
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                  Email
+                  User
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                  UserName
+                  Email
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                   Role
                 </th>
-
                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-300 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#21222d]">
-              {filteredUsers.map((user) => (
-                <tr
-                  key={user.id}
-                  className="hover:bg-[#21222d] transition-colors"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ background: "#21222d" }}
-                      >
-                        <span className="text-sm font-medium text-slate-100">
-                          {user.avatar}
-                        </span>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-slate-100">
-                          {user.name}
-                        </div>
-                        <div className="text-sm text-slate-400">
-                          {user.email}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-slate-100">
-                          {user.name}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.role === "Admin"
-                          ? "bg-red-900 text-red-200"
-                          : user.role === "Manager"
-                          ? "bg-blue-900 text-blue-200"
-                          : "bg-[#21222d] text-slate-300"
-                      }`}
-                    >
-                      {user.role}
-                    </span>
-                  </td>
-
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button className="text-cyan-400 hover:text-cyan-300 p-1">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button className="text-yellow-400 hover:text-yellow-300 p-1">
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button className="text-red-400 hover:text-red-300 p-1">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="4"
+                    className="px-6 py-8 text-center text-slate-400"
+                  >
+                    No users found
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredUsers.map((user) => (
+                  <tr
+                    key={user.id}
+                    className="hover:bg-[#21222d] transition-colors"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center"
+                          style={{ background: "#21222d" }}
+                        >
+                          <span className="text-sm font-medium text-slate-100">
+                            {getInitials(user.username)}
+                          </span>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-slate-100">
+                            {user.username || "N/A"}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-slate-400">
+                        {user.email || "N/A"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          user.role.toLowerCase() === "admin"
+                            ? "bg-red-900 text-red-200"
+                            : user.role === "manager"
+                            ? "bg-blue-900 text-blue-200"
+                            : "bg-[#21222d] text-slate-300"
+                        }`}
+                      >
+                        {user.role
+                          ? user.role.charAt(0).toUpperCase() +
+                            user.role.slice(1)
+                          : "N/A"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handleViewUser(user.id)}
+                          className="text-cyan-400 hover:text-cyan-300 p-1"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          className="text-yellow-400 hover:text-yellow-300 p-1"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-red-400 hover:text-red-300 p-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -217,7 +292,7 @@ const Users = () => {
             <div className="text-sm text-slate-400">
               Showing {filteredUsers.length} of {users.length} users
             </div>
-            <div className="flex space-x-2">
+            {/* <div className="flex space-x-2">
               <button
                 className="px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-[#21222d] border border-[#21222d]"
                 style={{ background: "#171821" }}
@@ -239,10 +314,133 @@ const Users = () => {
               >
                 Next
               </button>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
+
+      {/* View User Modal */}
+      {showUserModal && selectedUser && (
+        <div className="fixed inset-0 bg-[#0000007c] bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#171821] rounded-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-slate-100">User Details</h3>
+              <button
+                onClick={() => setShowUserModal(false)}
+                className="text-slate-400 hover:text-slate-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-slate-400">Username</label>
+                <p className="text-slate-100 font-medium">
+                  {selectedUser.username || "N/A"}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400">Email</label>
+                <p className="text-slate-100 font-medium">
+                  {selectedUser.email || "N/A"}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400">Role</label>
+                <p className="text-slate-100 font-medium">
+                  {selectedUser.role
+                    ? selectedUser.role.charAt(0).toUpperCase() +
+                      selectedUser.role.slice(1).toLowerCase()
+                    : "N/A"}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400">ID</label>
+                <p className="text-slate-100 font-medium">{selectedUser.id}</p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end"></div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && selectedUser && (
+        <div className="fixed inset-0 bg-[#0000007c] bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#171821] rounded-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-slate-100">Edit User</h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-slate-400 hover:text-slate-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateUser} className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, name: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-[#21222d] border border-[#21222d] rounded-lg text-slate-100 focus:outline-none focus:border-cyan-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, email: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-[#21222d] border border-[#21222d] rounded-lg text-slate-100 focus:outline-none focus:border-cyan-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">
+                  Role
+                </label>
+                <select
+                  value={editForm.role}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, role: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-[#21222d] border border-[#21222d] rounded-lg text-slate-100 focus:outline-none focus:border-cyan-500"
+                  required
+                >
+                  <option value="">Select Role</option>
+                  <option value="user">User</option>
+                </select>
+              </div>
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-cyan-600 text-white rounded-lg hover:from-indigo-700 hover:to-cyan-700"
+                >
+                  Update User
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
