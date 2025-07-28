@@ -1,4 +1,11 @@
 import { Boxes, CheckCircle, Clock, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  getCountByBrand,
+  getCountByModel,
+  getCountByResourceType,
+  getCountBySpecification,
+} from "../../../../services/dashboard/dashboardService";
 import Chart from "../../components/Dashboard/Chart";
 import QuickActions from "../../components/Dashboard/QuickActions";
 import RecentActivity from "../../components/Dashboard/RecentActivity";
@@ -32,6 +39,38 @@ const Dashboard = () => {
     },
   ];
 
+  const [chartData, setChartData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchGraphData() {
+      setLoading(true);
+      try {
+        const [spec, type, model, brand] = await Promise.all([
+          getCountBySpecification(),
+          getCountByResourceType(),
+          getCountByModel(),
+          getCountByBrand(),
+        ]);
+
+        setChartData({
+          specification: spec,
+          resourceType: type,
+          model: model,
+          brand: brand,
+        });
+        console.log(spec);
+      } catch (err) {
+        console.log(err);
+        setChartData(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchGraphData();
+  }, []);
+  console.log(chartData);
+
   return (
     <div className="min-h-screen bg-[edf3ff] text-white">
       {/* Page Header */}
@@ -55,7 +94,13 @@ const Dashboard = () => {
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Resource Count Chart */}
           <div className="lg:col-span-2">
-            <Chart title="Resource Counts by Category" />
+            {loading ? (
+              <div className="text-center text-slate-400 py-8">
+                Loading chart...
+              </div>
+            ) : (
+              <Chart title="Resource Counts by Category" data={chartData} />
+            )}
           </div>
         </div>
         {/* Content Grid */}

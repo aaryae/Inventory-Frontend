@@ -1,321 +1,321 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-const Chart = ({ title, data, color = "blue" }) => {
-  const [activeCategory, setActiveCategory] = useState("resourceType");
+const Chart = ({ title, data }) => {
+  const [activeCategory, setActiveCategory] = useState("specification");
 
-  // Mock data for resource counts by different categories
-  const chartData = {
-    resourceType: [
-      { name: "Keyboard", count: 25 },
-      { name: "Mouse", count: 49 },
-      { name: "Laptop", count: 12 },
-      { name: "Monitor", count: 18 },
-      { name: "Headphones", count: 8 },
-    ],
-    specification: [
-      { name: "Wireless", count: 35 },
-      { name: "Wired", count: 42 },
-      { name: "Bluetooth", count: 15 },
-      { name: "USB-C", count: 28 },
-    ],
-    brand: [
-      { name: "Logitech", count: 32 },
-      { name: "Dell", count: 18 },
-      { name: "HP", count: 15 },
-      { name: "Samsung", count: 12 },
-      { name: "Apple", count: 8 },
-    ],
-    model: [
-      { name: "K380", count: 15 },
-      { name: "M185", count: 22 },
-      { name: "Latitude 5520", count: 8 },
-      { name: "Pavilion", count: 12 },
-      { name: "Galaxy Tab", count: 6 },
-    ],
-  };
+  // Transform data for the chart
+  const chartData = useMemo(() => {
+    if (!data || !data[activeCategory]) return [];
+
+    const categoryData = data[activeCategory];
+
+    // Handle the nested response format
+    const rawData = categoryData.data || categoryData;
+
+    return Object.entries(rawData).map(([key, value]) => ({
+      name: key,
+      count: value,
+    }));
+  }, [data, activeCategory]);
 
   const categories = [
-    { key: "resourceType", label: "Resource Type" },
-    { key: "specification", label: "Specification" },
-    { key: "brand", label: "Brand" },
-    { key: "model", label: "Model" },
+    {
+      key: "specification",
+      label: "Specification",
+      color: "from-blue-500 to-blue-600",
+      barColor: "#3b82f6",
+    },
+    {
+      key: "model",
+      label: "Model",
+      color: "from-purple-500 to-purple-600",
+      barColor: "#8b5cf6",
+    },
+    {
+      key: "brand",
+      label: "Brand",
+      color: "from-emerald-500 to-emerald-600",
+      barColor: "#10b981",
+    },
+    {
+      key: "resourceType",
+      label: "Resource Type",
+      color: "from-amber-500 to-amber-600",
+      barColor: "#f59e0b",
+    },
   ];
 
-  const currentData = chartData[activeCategory];
+  const activeConfig = categories.find((cat) => cat.key === activeCategory);
 
-  const colorClasses = {
-    blue: "from-blue-500 to-cyan-500",
-    green: "from-green-400 to-cyan-400",
-    purple: "from-purple-500 to-indigo-500",
-    yellow: "from-yellow-400 to-orange-400",
-  };
-
-  const bgColor = colorClasses[color] || colorClasses.blue;
-
-  // Calculate SVG path for smooth line chart - responsive width
-  const chartHeight = 200;
-  const padding = 60;
-  const maxValue = Math.max(...currentData.map((item) => item.count));
-
-  const createPoints = (containerWidth) => {
-    const chartWidth = containerWidth;
-    return currentData.map((item, index) => {
-      const x =
-        padding +
-        (index * (chartWidth - 2 * padding)) / (currentData.length - 1);
-      const y =
-        chartHeight -
-        padding -
-        (item.count / maxValue) * (chartHeight - 2 * padding);
-      return { x, y, count: item.count, name: item.name };
-    });
-  };
-
-  // Create smooth curve path
-  const createSmoothPath = (points) => {
-    if (points.length < 2) return "";
-
-    let path = `M ${points[0].x} ${points[0].y}`;
-
-    for (let i = 1; i < points.length; i++) {
-      const prev = points[i - 1];
-      const curr = points[i];
-      const next = points[i + 1];
-
-      if (next) {
-        // Calculate control points for smooth curve
-        const cp1x = prev.x + (curr.x - prev.x) * 0.5;
-        const cp1y = prev.y;
-        const cp2x = curr.x - (next.x - curr.x) * 0.5;
-        const cp2y = curr.y;
-
-        path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${curr.x} ${curr.y}`;
-      } else {
-        // Last point - straight line
-        path += ` L ${curr.x} ${curr.y}`;
-      }
-    }
-
-    return path;
-  };
-
-  const ChartSVG = ({ containerWidth }) => {
-    const points = createPoints(containerWidth);
-    const linePath = createSmoothPath(points);
-    const areaPath =
-      linePath +
-      ` L ${points[points.length - 1].x} ${chartHeight - padding} L ${
-        points[0].x
-      } ${chartHeight - padding} Z`;
-
+  if (!data) {
     return (
-      <svg
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${containerWidth} ${chartHeight}`}
-      >
-        {/* Definitions for gradients */}
-        <defs>
-          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#6366f1" />
-            <stop offset="100%" stopColor="#06b6d4" />
-          </linearGradient>
-          <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.1" />
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
-        {/* Grid lines */}
-        {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => (
-          <line
-            key={index}
-            x1={padding}
-            y1={chartHeight - padding - ratio * (chartHeight - 2 * padding)}
-            x2={containerWidth - padding}
-            y2={chartHeight - padding - ratio * (chartHeight - 2 * padding)}
-            stroke="#374151"
-            strokeWidth="1"
-            strokeDasharray="5,5"
-            opacity="0.3"
-          />
-        ))}
-
-        {/* Area fill */}
-        <path d={areaPath} fill="url(#areaGradient)" opacity="0.6" />
-
-        {/* Main line */}
-        <path
-          d={linePath}
-          stroke="url(#lineGradient)"
-          strokeWidth="4"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          filter="url(#glow)"
-        />
-
-        {/* Data points with glow effect */}
-        {points.map((point, index) => (
-          <g key={index}>
-            {/* Glow circle */}
-            <circle
-              cx={point.x}
-              cy={point.y}
-              r="8"
-              fill="url(#lineGradient)"
-              opacity="0.3"
-              filter="url(#glow)"
-            />
-            {/* Main circle */}
-            <circle
-              cx={point.x}
-              cy={point.y}
-              r="6"
-              fill="url(#lineGradient)"
-              stroke="#171821"
-              strokeWidth="3"
-            />
-            {/* Inner highlight */}
-            <circle
-              cx={point.x}
-              cy={point.y}
-              r="3"
-              fill="white"
-              opacity="0.8"
-            />
-            {/* Value label */}
-            <text
-              x={point.x}
-              y={point.y - 20}
-              textAnchor="middle"
-              className="text-xs font-bold"
-              fill="#06b6d4"
-              style={{ fontSize: "12px", fontWeight: "600" }}
-            >
-              {point.count}
-            </text>
-          </g>
-        ))}
-
-        {/* X-axis labels */}
-        {points.map((point, index) => (
-          <text
-            key={index}
-            x={point.x}
-            y={chartHeight - 15}
-            textAnchor="middle"
-            className="text-xs"
-            fill="#9ca3af"
-            style={{ fontSize: "11px" }}
-          >
-            {point.name}
-          </text>
-        ))}
-      </svg>
-    );
-  };
-
-  return (
-    <div
-      className="w-full rounded-2xl border border-[#21222d] shadow-lg"
-      style={{ background: "#171821" }}
-    >
-      <div className="p-6 border-b border-[#21222d]">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-100">
-            {title || "Resource Analytics Dashboard"}
-          </h3>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full"></div>
-              <span className="text-xs text-slate-400">Resource Count</span>
+      <div className="bg-[#171821] rounded-2xl shadow-xl border  p-8 ">
+        <div className="flex items-center justify-between mb-6 bg-[#171821]">
+          <h2 className="text-2xl font-bold bg-[#171821]   bg-clip-text text-transparent">
+            {title}
+          </h2>
+        </div>
+        <div className="flex items-center justify-center h-96 text-gray-400">
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-[#171821] rounded-full flex items-center justify-center">
+              <svg
+                className="w-8 h-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
             </div>
+            <p className="text-lg font-medium">No data available</p>
+            <p className="text-sm">Chart data will appear here once loaded</p>
           </div>
         </div>
       </div>
+    );
+  }
 
-      <div className="p-6">
-        {/* Category Tabs */}
-        <div className="flex flex-wrap gap-2 mb-6">
+  const totalCount = chartData.reduce((sum, item) => sum + item.count, 0);
+  const maxValue = Math.max(...chartData.map((item) => item.count));
+
+  return (
+    <div className="bg-[#171821] rounded-2xl shadow-xl   overflow-hidden">
+      {/* Header Section */}
+      <div className="px-8 pt-8 pb-6 bg-[#171821] ">
+        <div className="flex items-center justify-between mb-6 bg-[#171821]">
+          <h2 className="text-2xl font-bold bg-white bg-clip-text text-transparent">
+            {title}
+          </h2>
+          <div className="flex items-center space-x-4 text-sm text-gray-500">
+            <div className="flex items-center">
+              <div className="w-2 h-2 rounded-full bg-gray-400 mr-2"></div>
+              <span>{chartData.length} items</span>
+            </div>
+            <div className="flex items-center">
+              <div
+                className={`w-2 h-2 rounded-full mr-2`}
+                style={{ backgroundColor: activeConfig.barColor }}
+              ></div>
+              <span>Total: {totalCount}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Category Buttons */}
+        <div className="flex flex-wrap gap-3">
           {categories.map((category) => (
             <button
               key={category.key}
               onClick={() => setActiveCategory(category.key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`group relative px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 ${
                 activeCategory === category.key
-                  ? "bg-gradient-to-r from-indigo-500 to-cyan-500 text-white shadow-lg"
-                  : "text-slate-400 hover:text-white hover:bg-[#21222d]"
+                  ? `bg-gradient-to-r ${
+                      category.color
+                    } text-white shadow-lg shadow-${
+                      category.key === "specification"
+                        ? "blue"
+                        : category.key === "model"
+                        ? "purple"
+                        : category.key === "brand"
+                        ? "emerald"
+                        : "amber"
+                    }-200`
+                  : "bg-white text-gray-600 hover:text-gray-800 shadow-md hover:shadow-lg "
               }`}
             >
-              {category.label}
+              <span className="relative z-10">{category.label}</span>
+              {activeCategory !== category.key && (
+                <div
+                  className={`absolute inset-0 bg-gradient-to-r ${category.color} opacity-0 group-hover:opacity-10 rounded-xl transition-opacity duration-300`}
+                ></div>
+              )}
             </button>
           ))}
         </div>
+      </div>
 
-        {/* Chart Container */}
-        <div className="relative h-64 w-full">
-          {/* Y-axis labels */}
-          <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-xs text-slate-400 z-10">
-            <span>{maxValue}</span>
-            <span>{Math.round(maxValue * 0.75)}</span>
-            <span>{Math.round(maxValue * 0.5)}</span>
-            <span>{Math.round(maxValue * 0.25)}</span>
-            <span>0</span>
-          </div>
-
-          {/* SVG Chart - Full width */}
-          <div className="ml-8 h-full w-full">
-            <div className="w-full h-fit">
-              <ChartSVG containerWidth={1000} />
-            </div>
+      {/* Chart Section */}
+      <div className="p-8">
+        <div className="bg-[#21222d] rounded-xl shadow-inner  p-6">
+          <div className="h-96">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={{
+                  top: 20,
+                  right: 30,
+                  left: 20,
+                  bottom: 80,
+                }}
+              >
+                <defs>
+                  <linearGradient
+                    id={`gradient-${activeCategory}`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="0%"
+                      stopColor={activeConfig.barColor}
+                      stopOpacity={0.9}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor={activeConfig.barColor}
+                      stopOpacity={0.6}
+                    />
+                  </linearGradient>
+                </defs>
+                {/* <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#f1f5f9"
+                  strokeWidth={1}
+                /> */}
+                <XAxis
+                  dataKey="name"
+                  stroke="#64748b"
+                  fontSize={11}
+                  fontWeight={500}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  interval={0}
+                  tick={{ fill: "#64748b" }}
+                />
+                <YAxis
+                  stroke="#64748b"
+                  fontSize={11}
+                  fontWeight={500}
+                  tick={{ fill: "#64748b" }}
+                  tickLine={{ stroke: "#e2e8f0" }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "rgba(255, 255, 255, 0.95)",
+                    border: "none",
+                    borderRadius: "12px",
+                    boxShadow:
+                      "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                    backdropFilter: "blur(10px)",
+                    fontSize: "13px",
+                    fontWeight: "500",
+                  }}
+                  labelStyle={{
+                    color: "#1f2937",
+                    fontWeight: "600",
+                    marginBottom: "4px",
+                    fontSize: "14px",
+                  }}
+                  itemStyle={{
+                    color: activeConfig.barColor,
+                    fontWeight: "600",
+                  }}
+                  cursor={{ fill: "rgba(59, 130, 246, 0.05)" }}
+                />
+                <Bar
+                  dataKey="count"
+                  fill={`url(#gradient-${activeCategory})`}
+                  radius={[8, 8, 0, 0]}
+                  name="Count"
+                  stroke={activeConfig.barColor}
+                  strokeWidth={1}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Summary stats */}
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div
-            className="text-center p-3 rounded-lg"
-            style={{ background: "#21222d" }}
-          >
-            <div className="text-2xl font-bold text-indigo-400">
-              {currentData.reduce((sum, item) => sum + item.count, 0)}
+        {/* Stats Footer */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-[#21222d] rounded-xl p-4 ">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-blue-200 rounded-lg flex items-center justify-center mr-3">
+                <svg
+                  className="w-5 h-5 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium  text-white">Total Items</p>
+                <p className="text-xl font-bold text-white">
+                  {chartData.length}
+                </p>
+              </div>
             </div>
-            <div className="text-xs text-slate-400">Total Resources</div>
           </div>
-          <div
-            className="text-center p-3 rounded-lg"
-            style={{ background: "#21222d" }}
-          >
-            <div className="text-2xl font-bold text-green-400">
-              {currentData.length}
+
+          <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-100">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center mr-3">
+                <svg
+                  className="w-5 h-5 text-emerald-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Highest Count
+                </p>
+                <p className="text-xl font-bold text-gray-900">{maxValue}</p>
+              </div>
             </div>
-            <div className="text-xs text-slate-400">Categories</div>
           </div>
-          <div
-            className="text-center p-3 rounded-lg"
-            style={{ background: "#21222d" }}
-          >
-            <div className="text-2xl font-bold text-yellow-400">
-              {Math.max(...currentData.map((item) => item.count))}
+
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                <svg
+                  className="w-5 h-5 text-purple-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Count</p>
+                <p className="text-xl font-bold text-gray-900">{totalCount}</p>
+              </div>
             </div>
-            <div className="text-xs text-slate-400">Highest Count</div>
-          </div>
-          <div
-            className="text-center p-3 rounded-lg"
-            style={{ background: "#21222d" }}
-          >
-            <div className="text-2xl font-bold text-purple-400">
-              {Math.min(...currentData.map((item) => item.count))}
-            </div>
-            <div className="text-xs text-slate-400">Lowest Count</div>
           </div>
         </div>
       </div>

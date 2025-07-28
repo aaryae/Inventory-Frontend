@@ -1,4 +1,4 @@
-import { Boxes, Home, Users, X } from "lucide-react";
+import { Boxes, CheckCircle2, Home, Users, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import Logo from "../../../common/Logo";
 
@@ -6,9 +6,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
 
   const menuItems = [
-    { name: "Dashboard", icon: Home, path: "/admin/dashboard" },
+    { name: "Dashboard", icon: Home, path: "/admin" },
     { name: "Users", icon: Users, path: "/admin/users" },
     { name: "Inventory", icon: Boxes, path: "/admin/inventory" },
+    { name: "assignment", icon: CheckCircle2, path: "/admin/assignment" },
   ];
 
   const isActive = (path) => location.pathname === path;

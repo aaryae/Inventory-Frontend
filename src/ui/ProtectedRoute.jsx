@@ -5,12 +5,10 @@ const ProtectedRoute = ({ children, silent = false }) => {
   const location = useLocation()
 
   if (!isLoggedIn) {
-    // ✅ If silent, just block access (could redirect)
     if (silent) {
       return <Navigate to='/login' state={{ from: location }} replace />
     }
 
-    // ✅ Otherwise, show message
     return (
       <div className='min-h-screen flex items-center justify-center text-center px-4 '>
         <div className='max-w-md'>
