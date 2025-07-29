@@ -1,7 +1,9 @@
 import { Bell, Menu, UserCircle } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Header = ({ toggleSidebar }) => {
+  const navigate = useNavigate();
   const [notifications] = useState([
     { id: 1, message: "New user registered", time: "2 min ago", unread: true },
     {
@@ -17,6 +19,11 @@ const Header = ({ toggleSidebar }) => {
       unread: false,
     },
   ]);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -125,7 +132,7 @@ const Header = ({ toggleSidebar }) => {
                   </a>
                   <hr className="border-[#21222d] my-1" />
                   <a
-                    href="#logout"
+                    onClick={handleLogout}
                     className="block px-4 py-2 text-sm text-red-400 hover:bg-[#171821]"
                   >
                     Logout
