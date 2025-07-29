@@ -47,6 +47,7 @@ const Inventory = () => {
         toast.error(response.message || "Failed to fetch resources");
       }
     } catch (error) {
+      console.log(error);
       toast.error("Failed to fetch resources");
     } finally {
       setLoading(false);
@@ -63,6 +64,7 @@ const Inventory = () => {
         toast.error(response.message || "Failed to fetch resource details");
       }
     } catch (error) {
+      console.log(error);
       toast.error("Failed to fetch resource details");
     }
   };
@@ -79,6 +81,7 @@ const Inventory = () => {
         toast.error(response.message || "Failed to delete resource");
       }
     } catch (error) {
+      console.log(error);
       toast.error("Failed to delete resource");
     }
   };
