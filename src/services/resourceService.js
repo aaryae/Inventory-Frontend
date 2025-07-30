@@ -20,7 +20,10 @@ export const createResource = async (resourcesPayload) => {
 
 // Update a resource by ID (PATCH)
 export const updateResource = async (resourceId, updatePayload) => {
-  const response = await axiosInstance.patch(`/api/resources/${resourceId}`, updatePayload);
+  const response = await axiosInstance.patch(
+    `/api/resources/${resourceId}`,
+    updatePayload
+  );
   return response.data;
 };
 
@@ -28,4 +31,4 @@ export const updateResource = async (resourceId, updatePayload) => {
 export const deleteResource = async (resourceId) => {
   const response = await axiosInstance.delete(`/api/resources/${resourceId}`);
   return response.data;
-}; 
+};

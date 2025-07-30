@@ -6,16 +6,18 @@ import {
   getCountByResourceType,
   getCountBySpecification,
 } from "../../../../services/dashboard/dashboardService";
+import { getUsers } from "../../../../services/user/usersService";
 import Chart from "../../components/Dashboard/Chart";
 import QuickActions from "../../components/Dashboard/QuickActions";
 import RecentActivity from "../../components/Dashboard/RecentActivity";
 import StatCard from "../../components/Dashboard/StatCard";
 
 const Dashboard = () => {
+  const [usercount, setUserCount] = useState("");
   const stats = [
     {
       title: "Total Users",
-      value: "1,234",
+      value: usercount.length,
       icon: Users,
       color: "blue",
     },
@@ -39,6 +41,25 @@ const Dashboard = () => {
     },
   ];
 
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await getUsers();
+      if (response.success) {
+        setUserCount(response.data || []);
+      } else {
+        setUserCount(null);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -69,7 +90,6 @@ const Dashboard = () => {
     }
     fetchGraphData();
   }, []);
-  console.log(chartData);
 
   return (
     <div className="min-h-screen bg-[edf3ff] text-white">
