@@ -1,17 +1,4 @@
-import {
-  ChevronLeft,
-  ChevronRight,
-  Crown,
-  Eye,
-  Pencil,
-  Plus,
-  Search,
-  Shield,
-  Trash2,
-  UserCheck,
-  Users as UsersIcon,
-  X,
-} from "lucide-react";
+import { Eye, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -19,7 +6,7 @@ import {
   getUserById,
   getUsers,
   updateUser,
-} from "../../../../services/users/usersService";
+} from "../../../../services/user/usersService";
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -33,10 +20,6 @@ const Users = () => {
     email: "",
     role: "",
   });
-
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Fetch users on component mount
   useEffect(() => {
@@ -123,42 +106,10 @@ const Users = () => {
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
-
-  // Calculate statistics
-  const totalUsers = users.length;
-  const adminUsers = users.filter(
-    (user) => user.role?.toLowerCase() === "admin"
-  ).length;
-  const managerUsers = users.filter(
-    (user) => user.role?.toLowerCase() === "manager"
-  ).length;
-  const regularUsers = users.filter(
-    (user) => user.role?.toLowerCase() === "user"
-  ).length;
-
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentUsers = filteredUsers.slice(startIndex, endIndex);
-
-  // Reset to first page when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
-
-  const handleItemsPerPageChange = (value) => {
-    setItemsPerPage(value);
-    setCurrentPage(1);
-  };
 
   const getInitials = (name) => {
     return (
@@ -169,23 +120,6 @@ const Users = () => {
         .toUpperCase() || "U"
     );
   };
-
-  const StatCard = ({ icon: Icon, title, value, color }) => (
-    <div
-      className="p-4 rounded-xl border border-[#21222d] shadow-lg"
-      style={{ background: "#171821" }}
-    >
-      <div className="flex items-center">
-        <div className={`p-2 rounded-lg ${color}`}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <div className="ml-3">
-          <p className="text-sm text-slate-400">{title}</p>
-          <p className="text-xl font-semibold text-slate-100">{value}</p>
-        </div>
-      </div>
-    </div>
-  );
 
   if (loading) {
     return (
@@ -223,34 +157,6 @@ const Users = () => {
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard
-          icon={UsersIcon}
-          title="Total Users"
-          value={totalUsers}
-          color="bg-blue-600"
-        />
-        <StatCard
-          icon={Crown}
-          title="Admins"
-          value={adminUsers}
-          color="bg-red-600"
-        />
-        <StatCard
-          icon={Shield}
-          title="Managers"
-          value={managerUsers}
-          color="bg-purple-600"
-        />
-        <StatCard
-          icon={UserCheck}
-          title="Regular Users"
-          value={regularUsers}
-          color="bg-green-600"
-        />
-      </div>
-
       {/* Filters and Search */}
       <div
         className="mb-6 p-6 rounded-2xl border border-[#21222d] shadow-lg"
@@ -263,7 +169,7 @@ const Users = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search users by name or email..."
+                placeholder="Search users..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:border-cyan-500 text-slate-100 border border-[#21222d]"
@@ -298,7 +204,7 @@ const Users = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#21222d]">
-              {currentUsers.length === 0 ? (
+              {filteredUsers.length === 0 ? (
                 <tr>
                   <td
                     colSpan="4"
@@ -308,7 +214,7 @@ const Users = () => {
                   </td>
                 </tr>
               ) : (
-                currentUsers.map((user) => (
+                filteredUsers.map((user) => (
                   <tr
                     key={user.id}
                     className="hover:bg-[#21222d] transition-colors"
@@ -338,11 +244,11 @@ const Users = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          user.role?.toLowerCase() === "admin"
+                          user.role.toLowerCase() === "admin"
                             ? "bg-red-900 text-red-200"
-                            : user.role?.toLowerCase() === "manager"
-                            ? "bg-purple-900 text-purple-200"
-                            : "bg-green-900 text-green-200"
+                            : user.role === "manager"
+                            ? "bg-blue-900 text-blue-200"
+                            : "bg-[#21222d] text-slate-300"
                         }`}
                       >
                         {user.role
@@ -381,96 +287,36 @@ const Users = () => {
         </div>
 
         {/* Pagination */}
-        {filteredUsers.length > 0 && (
-          <div
-            className="px-6 py-4 border-t border-[#21222d]"
-            style={{ background: "#171821" }}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-              {/* Items per page and info */}
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-slate-400">Show</span>
-                  <select
-                    value={itemsPerPage}
-                    onChange={(e) =>
-                      handleItemsPerPageChange(Number(e.target.value))
-                    }
-                    className="px-3 py-1 rounded-lg focus:outline-none focus:border-cyan-500 text-slate-100 border border-[#21222d]"
-                    style={{ background: "#21222d" }}
-                  >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </select>
-                  <span className="text-sm text-slate-400">entries</span>
-                </div>
-                <div className="text-sm text-slate-400">
-                  Showing {startIndex + 1} to{" "}
-                  {Math.min(endIndex, filteredUsers.length)} of{" "}
-                  {filteredUsers.length} entries
-                </div>
-              </div>
-
-              {/* Pagination buttons */}
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-[#21222d] text-slate-400 hover:text-slate-100 hover:bg-[#21222d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  style={{ background: "#171821" }}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-
-                {/* Page numbers */}
-                <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                    let pageNumber;
-                    if (totalPages <= 5) {
-                      pageNumber = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNumber = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNumber = totalPages - 4 + i;
-                    } else {
-                      pageNumber = currentPage - 2 + i;
-                    }
-
-                    return (
-                      <button
-                        key={pageNumber}
-                        onClick={() => handlePageChange(pageNumber)}
-                        className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-                          currentPage === pageNumber
-                            ? "bg-gradient-to-r from-indigo-600 to-cyan-600 text-white"
-                            : "border border-[#21222d] text-slate-400 hover:text-slate-100 hover:bg-[#21222d]"
-                        }`}
-                        style={
-                          currentPage !== pageNumber
-                            ? { background: "#171821" }
-                            : {}
-                        }
-                      >
-                        {pageNumber}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg border border-[#21222d] text-slate-400 hover:text-slate-100 hover:bg-[#21222d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  style={{ background: "#171821" }}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+        <div className="p-6 border-t border-[#21222d]">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-slate-400">
+              Showing {filteredUsers.length} of {users.length} users
             </div>
+            {/* <div className="flex space-x-2">
+              <button
+                className="px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-[#21222d] border border-[#21222d]"
+                style={{ background: "#171821" }}
+              >
+                Previous
+              </button>
+              <button className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-cyan-600 border border-transparent rounded-lg text-sm text-white">
+                1
+              </button>
+              <button
+                className="px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-[#21222d] border border-[#21222d]"
+                style={{ background: "#171821" }}
+              >
+                2
+              </button>
+              <button
+                className="px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-[#21222d] border border-[#21222d]"
+                style={{ background: "#171821" }}
+              >
+                Next
+              </button>
+            </div> */}
           </div>
-        )}
+        </div>
       </div>
 
       {/* View User Modal */}
@@ -513,14 +359,7 @@ const Users = () => {
                 <p className="text-slate-100 font-medium">{selectedUser.id}</p>
               </div>
             </div>
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => setShowUserModal(false)}
-                className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700"
-              >
-                Close
-              </button>
-            </div>
+            <div className="mt-6 flex justify-end"></div>
           </div>
         </div>
       )}
@@ -581,8 +420,6 @@ const Users = () => {
                 >
                   <option value="">Select Role</option>
                   <option value="user">User</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
                 </select>
               </div>
               <div className="mt-6 flex justify-end space-x-3">

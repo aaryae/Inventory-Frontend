@@ -1,35 +1,22 @@
 import { Toaster } from "react-hot-toast";
 import {
-  createBrowserRouter,
-  Navigate,
-  RouterProvider,
+    createBrowserRouter,
+    Navigate,
+    RouterProvider,
 } from "react-router-dom";
 
-// Admin Pages & Layout
 import Dashboard from "./ui/admin/pages/Dashboard/Dashboard";
 import Inventory from "./ui/admin/pages/Inventory/Inventory";
 import Users from "./ui/admin/pages/Users/Users";
 import AdminTemplate from "./ui/admin/templates/AdminTemplate";
-
-// User Pages & Layout
-import Hero from "./ui/user/components/hero/Hero";
+import ProtectedRoute from "./ui/ProtectedRoute";
 import Login from "./ui/user/pages/Login";
 import LandingTemplate from "./ui/user/templates/Landing.Template";
-
-// Common Pages
-import ForgotPassword from "./ui/common/ForgotPassword";
-
-// Route Protection
-import ProtectedRoute from "./ui/ProtectedRoute";
 
 const router = createBrowserRouter([
   {
     path: "/login",
     element: <Login />,
-  },
-  {
-    path: "/forgot-password",
-    element: <ForgotPassword />,
   },
   {
     path: "/",
@@ -42,6 +29,7 @@ const router = createBrowserRouter([
         <AdminTemplate />
       </ProtectedRoute>
     ),
+
     children: [
       { index: true, element: <Dashboard /> },
       { path: "users", element: <Users /> },
@@ -51,8 +39,11 @@ const router = createBrowserRouter([
   },
   {
     path: "/user",
-    element: <LandingTemplate />,
-    children: [{ index: true, element: <Hero /> }],
+    element: (
+      <ProtectedRoute>
+        <LandingTemplate />
+      </ProtectedRoute>
+    ),
   },
 ]);
 
