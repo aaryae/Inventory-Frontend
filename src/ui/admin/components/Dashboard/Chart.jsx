@@ -10,7 +10,7 @@ import {
 } from "recharts";
 
 const Chart = ({ title, data }) => {
-  const [activeCategory, setActiveCategory] = useState("specification");
+  const [activeCategory, setActiveCategory] = useState("model");
   const [currentPage, setCurrentPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [viewMode, setViewMode] = useState("paginated");
@@ -136,9 +136,7 @@ const Chart = ({ title, data }) => {
       {/* Header Section */}
       <div className="px-8 pt-8 pb-6 bg-[#171821]">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-            {title}
-          </h2>
+          <h2 className="text-2xl font-bold text-white ">{title}</h2>
           <div className="flex items-center space-x-4 text-sm text-gray-500">
             <div className="flex items-center">
               <div className="w-2 h-2 rounded-full bg-gray-400 mr-2"></div>
