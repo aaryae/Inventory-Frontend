@@ -1,43 +1,8 @@
-import { useEffect, useState } from "react";
-import { axiosInstance } from "../../../../config/axios";
+import { useState } from "react";
 
 const Hero = () => {
-  const [username, setUsername] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setErrorMessage("No token found. Please log in.");
-        return;
-      }
-
-      try {
-        const response = await axiosInstance.get("/api/user", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setUsername(response.data.email || "User");
-        setErrorMessage("");
-      } catch (error) {
-        const status = error.response?.status;
-        if (status === 401) {
-          setErrorMessage("Unauthorized access. Please log in again.");
-          // Optionally, clear invalid token here
-          // localStorage.removeItem("token");
-        } else if (status === 403) {
-          setErrorMessage("Access forbidden: you don't have permission to view this.");
-        } else {
-          setErrorMessage("Error fetching user data.");
-        }
-        console.error("API Error:", error.response?.data || error.message);
-      }
-    };
-
-    fetchUser();
-  }, []);
+  const username = localStorage.getItem("username");
 
   return (
     <main className="flex-grow">
