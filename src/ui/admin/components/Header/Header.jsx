@@ -1,6 +1,6 @@
 import { Bell, Menu, UserCircle } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Header = ({ toggleSidebar }) => {
   const navigate = useNavigate();
@@ -118,18 +118,30 @@ const Header = ({ toggleSidebar }) => {
                 style={{ background: "#21222d" }}
               >
                 <div className="py-2">
-                  <a
-                    href="#profile"
+                  <Link
+                    to="/admin"
                     className="block px-4 py-2 text-sm text-slate-300 hover:bg-[#171821]"
                   >
-                    Profile
-                  </a>
-                  <a
-                    href="#settings"
+                    Dashboard
+                  </Link>
+                  <Link
+                    to="/admin/users"
                     className="block px-4 py-2 text-sm text-slate-300 hover:bg-[#171821]"
                   >
-                    Settings
-                  </a>
+                    Users
+                  </Link>
+                  <Link
+                    to="/admin/inventory"
+                    className="block px-4 py-2 text-sm text-slate-300 hover:bg-[#171821]"
+                  >
+                    Inventory
+                  </Link>
+                  <Link
+                    to="/admin/assignment"
+                    className="block px-4 py-2 text-sm text-slate-300 hover:bg-[#171821]"
+                  >
+                    Assignment
+                  </Link>{" "}
                   <hr className="border-[#21222d] my-1" />
                   <a
                     onClick={handleLogout}
