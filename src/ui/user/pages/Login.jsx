@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
+import { useLocation, useNavigate } from "react-router-dom";
 import { signIn } from "../../../services/auth/authService";
-import { axiosInstance } from "../../../config/axios";
 
 const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [login, setLogin] = useState({ email: "", password: "" });
-  const [register, setRegister] = useState({ username: "", email: "", password: "" });
+  const [register, setRegister] = useState({
+    username: "",
+    email: "",
+    password: "",
+  });
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -35,6 +38,7 @@ const LoginPage = () => {
       if (res.success && res.data) {
         localStorage.setItem("token", res.data.accessToken);
         localStorage.setItem("role", res.data.role);
+        localStorage.setItem("username", res.data.username);
         toast.success("Login successful");
 
         setTimeout(() => {
@@ -81,6 +85,7 @@ const LoginPage = () => {
         toast.error(data.message || "Registration failed");
       }
     } catch (error) {
+      console.log(error);
       toast.error("Something went wrong");
     } finally {
       setLoading(false);
@@ -147,9 +152,12 @@ const LoginPage = () => {
             />
             {isLogin && location.pathname === "/login" && (
               <div className="text-right text-sm  mt-1">
-                Forgot password? 
-                <a href="/forgot-password" className="hover:underline text-blue-600 mx-1">
-                   Click Here
+                Forgot password?
+                <a
+                  href="/forgot-password"
+                  className="hover:underline text-blue-600 mx-1"
+                >
+                  Click Here
                 </a>
               </div>
             )}
