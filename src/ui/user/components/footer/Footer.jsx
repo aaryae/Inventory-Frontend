@@ -2,7 +2,7 @@ const Footer = () => {
   return (
     <footer className="flex flex-col md:flex-row items-center justify-between bg-black text-white px-6 md:px-[60px] py-6 md:h-[100px] text-center md:text-left space-y-4 md:space-y-0 ">
       <div className="text-3xl">
-        <h1 className="no-underline">IMS</h1>
+        <h1 className="no-underline ml-17 sm:flex flex-col items-center mr-16">IMS</h1>
       </div>
 
       <div className="text-sm">
@@ -11,7 +11,7 @@ const Footer = () => {
       </div>
 
       <div>
-        <h5 className="text-sm">VERISK ANALYTICS ®</h5>
+        <h5 className="text-sm mr-15 sm:flex flex-col items-center">VERISK ANALYTICS ®</h5>
       </div>
     </footer>
   );
