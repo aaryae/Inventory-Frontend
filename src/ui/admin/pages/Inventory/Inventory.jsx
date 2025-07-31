@@ -6,7 +6,6 @@ import {
   Package,
   Pencil,
   Plus,
-  Search,
   Tag,
   Trash2,
   X,
@@ -20,9 +19,11 @@ import {
   getResourceById,
   getResources,
 } from "../../../../services/resourceService";
+import InventoryFilters from "./InventoryFilters"; // Adjust path as needed
 
 const Inventory = () => {
   const [inventory, setInventory] = useState([]);
+  const [originalInventory, setOriginalInventory] = useState([]); // Store original data
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -32,20 +33,20 @@ const Inventory = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
 
-  // Form state for adding new resource
+  // Form state for adding new resource - Updated to match DTO
   const [newResource, setNewResource] = useState({
-    resourceCode: "",
     brand: "",
     model: "",
     specification: "",
-    resourceType: "",
-    resourceClass: "",
-    resourceStatus: "In Stock",
     purchaseDate: "",
     warrantyExpiry: "",
-    batchCode: "",
+    resourceTypeName: "",
+    resourceClassName: "",
+    resourceStatusName: "In Stock",
     unitPrice: "",
+    serialNumber: "",
     remarks: "",
+    batchId: "",
   });
 
   useEffect(() => {
@@ -57,7 +58,9 @@ const Inventory = () => {
     try {
       const response = await getResources();
       if (response.success) {
-        setInventory(response.data || []);
+        const data = response.data || [];
+        setInventory(data);
+        setOriginalInventory(data); // Store original data
       } else {
         toast.error(response.message || "Failed to fetch resources");
       }
@@ -66,6 +69,16 @@ const Inventory = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handler for when filtered data is received from advanced search
+  const handleFilteredData = (filteredData) => {
+    setInventory(filteredData);
+  };
+
+  // Handler for resetting to original data
+  const handleResetData = () => {
+    setInventory(originalInventory);
   };
 
   const handleViewResource = async (resourceId) => {
@@ -89,7 +102,7 @@ const Inventory = () => {
       const response = await deleteResource(resourceId);
       if (response.success) {
         toast.success("Resource deleted successfully");
-        fetchInventory();
+        await fetchInventory(); // Refresh data after deletion
       } else {
         toast.error(response.message || "Failed to delete resource");
       }
@@ -103,11 +116,23 @@ const Inventory = () => {
     setAddLoading(true);
 
     try {
-      // Validate required fields
-      const requiredFields = ["resourceCode", "brand", "model", "resourceType"];
-      const missingFields = requiredFields.filter(
-        (field) => !newResource[field].trim()
-      );
+      // Validate required fields based on DTO
+      const requiredFields = [
+        "brand",
+        "model",
+        "specification",
+        "purchaseDate",
+        "resourceTypeName",
+        "resourceClassName",
+        "resourceStatusName",
+        "unitPrice",
+        "serialNumber",
+      ];
+
+      const missingFields = requiredFields.filter((field) => {
+        const value = newResource[field];
+        return !value || (typeof value === "string" && !value.trim());
+      });
 
       if (missingFields.length > 0) {
         toast.error(`Please fill in: ${missingFields.join(", ")}`);
@@ -115,29 +140,41 @@ const Inventory = () => {
         return;
       }
 
+      // Prepare payload according to DTO structure
       const resourcePayload = {
-        resources: [newResource],
+        brand: newResource.brand.trim(),
+        model: newResource.model.trim(),
+        specification: newResource.specification.trim(),
+        purchaseDate: newResource.purchaseDate,
+        warrantyExpiry: newResource.warrantyExpiry || null,
+        resourceTypeName: newResource.resourceTypeName,
+        resourceClassName: newResource.resourceClassName,
+        resourceStatusName: newResource.resourceStatusName,
+        unitPrice: parseFloat(newResource.unitPrice),
+        serialNumber: newResource.serialNumber.trim(),
+        remarks: newResource.remarks.trim() || null,
+        batchId: newResource.batchId ? parseInt(newResource.batchId) : null,
       };
 
-      const response = await createResource(resourcePayload);
+      const response = await createResource({ resources: [resourcePayload] });
       if (response.success) {
         toast.success("Resource added successfully!");
         setShowAddModal(false);
         setNewResource({
-          resourceCode: "",
           brand: "",
           model: "",
           specification: "",
-          resourceType: "",
-          resourceClass: "",
-          resourceStatus: "In Stock",
           purchaseDate: "",
           warrantyExpiry: "",
-          batchCode: "",
+          resourceTypeName: "",
+          resourceClassName: "",
+          resourceStatusName: "In Stock",
           unitPrice: "",
+          serialNumber: "",
           remarks: "",
+          batchId: "",
         });
-        fetchInventory();
+        await fetchInventory(); // Refresh data after adding
       } else {
         toast.error(response.message || "Failed to add resource");
       }
@@ -155,6 +192,7 @@ const Inventory = () => {
     }));
   };
 
+  // Client-side filtering for basic search and category/status filters
   const filteredInventory = inventory.filter((item) => {
     const matchesSearch =
       item.resourceCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -215,7 +253,7 @@ const Inventory = () => {
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                 <span>
                   {
-                    inventory.filter(
+                    originalInventory.filter(
                       (item) => item.resourceStatus === "In Stock"
                     ).length
                   }{" "}
@@ -226,7 +264,7 @@ const Inventory = () => {
                 <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
                 <span>
                   {
-                    inventory.filter(
+                    originalInventory.filter(
                       (item) => item.resourceStatus === "Low Stock"
                     ).length
                   }{" "}
@@ -237,7 +275,7 @@ const Inventory = () => {
                 <div className="w-2 h-2 bg-red-400 rounded-full"></div>
                 <span>
                   {
-                    inventory.filter(
+                    originalInventory.filter(
                       (item) => item.resourceStatus === "Out of Stock"
                     ).length
                   }{" "}
@@ -256,57 +294,17 @@ const Inventory = () => {
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <div
-        className="mb-6 p-6 rounded-2xl border border-[#21222d] shadow-lg"
-        style={{ background: "#171821" }}
-      >
-        <div className="flex flex-col lg:flex-row lg:items-center lg:space-x-4 space-y-4 lg:space-y-0">
-          {/* Search */}
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search by code, brand, model, or specification..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 text-slate-100 border border-[#21222d] transition-all"
-                style={{ background: "#21222d" }}
-              />
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-3 rounded-xl focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 text-slate-100 border border-[#21222d] transition-all"
-              style={{ background: "#21222d" }}
-            >
-              <option value="all">All Types</option>
-              <option value="keyboard">Keyboard</option>
-              <option value="laptop">Laptop</option>
-              <option value="mouse">Mouse</option>
-              <option value="monitor">Monitor</option>
-              <option value="audio">Audio</option>
-            </select>
-
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-4 py-3 rounded-xl focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 text-slate-100 border border-[#21222d] transition-all"
-              style={{ background: "#21222d" }}
-            >
-              <option value="all">All Status</option>
-              <option value="in stock">In Stock</option>
-              <option value="low stock">Low Stock</option>
-              <option value="out of stock">Out of Stock</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      {/* Filters and Search - Using the separate component */}
+      <InventoryFilters
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        selectedStatus={selectedStatus}
+        setSelectedStatus={setSelectedStatus}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        onFilteredData={handleFilteredData}
+        onResetData={handleResetData}
+      />
 
       {/* Inventory Table */}
       <div
@@ -388,13 +386,13 @@ const Inventory = () => {
                       {item.model}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
-                      {item.specification}
+                      {item.specification || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
                       {item.resourceType}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
-                      {item.resourceClass}
+                      {item.resourceClass || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
                       {item.unitPrice
@@ -411,10 +409,10 @@ const Inventory = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
-                      {item.purchaseDate}
+                      {item.purchaseDate || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
-                      {item.warrantyExpiry}
+                      {item.warrantyExpiry || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-1">
@@ -490,22 +488,6 @@ const Inventory = () => {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300">
-                    Resource Code *
-                  </label>
-                  <input
-                    type="text"
-                    value={newResource.resourceCode}
-                    onChange={(e) =>
-                      handleInputChange("resourceCode", e.target.value)
-                    }
-                    className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    placeholder="Enter resource code"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">
                     Brand *
                   </label>
                   <input
@@ -513,7 +495,9 @@ const Inventory = () => {
                     value={newResource.brand}
                     onChange={(e) => handleInputChange("brand", e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    placeholder="Enter brand name"
+                    placeholder="Enter brand name "
+                    minLength={2}
+                    maxLength={20}
                     required
                   />
                 </div>
@@ -527,7 +511,27 @@ const Inventory = () => {
                     value={newResource.model}
                     onChange={(e) => handleInputChange("model", e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    placeholder="Enter model"
+                    placeholder="Enter model "
+                    minLength={2}
+                    maxLength={20}
+                    required
+                  />
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-sm font-medium text-slate-300">
+                    Specification *
+                  </label>
+                  <input
+                    type="text"
+                    value={newResource.specification}
+                    onChange={(e) =>
+                      handleInputChange("specification", e.target.value)
+                    }
+                    className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                    placeholder="Enter specifications (5-50 chars)"
+                    minLength={5}
+                    maxLength={50}
                     required
                   />
                 </div>
@@ -537,52 +541,86 @@ const Inventory = () => {
                     Resource Type *
                   </label>
                   <select
-                    value={newResource.resourceType}
+                    value={newResource.resourceTypeName}
                     onChange={(e) =>
-                      handleInputChange("resourceType", e.target.value)
+                      handleInputChange("resourceTypeName", e.target.value)
                     }
                     className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
                     required
                   >
                     <option value="">Select type</option>
-                    <option value="keyboard">Keyboard</option>
-                    <option value="laptop">Laptop</option>
-                    <option value="mouse">Mouse</option>
-                    <option value="monitor">Monitor</option>
-                    <option value="audio">Audio</option>
-                    <option value="storage">Storage</option>
-                    <option value="networking">Networking</option>
-                    <option value="other">Other</option>
+                    <option value="Keyboard">Keyboard</option>
+                    <option value="Laptop">Laptop</option>
+                    <option value="Mouse">Mouse</option>
+                    <option value="Monitor">Monitor</option>
+                    <option value="Audio">Audio</option>
+                    <option value="Storage">Storage</option>
+                    <option value="Networking">Networking</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300">
-                    Specification
+                    Resource Class *
+                  </label>
+                  <select
+                    value={newResource.resourceClassName}
+                    onChange={(e) =>
+                      handleInputChange("resourceClassName", e.target.value)
+                    }
+                    className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                    required
+                  >
+                    <option value="">Select class</option>
+                    <option value="Premium">Premium</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Basic">Basic</option>
+                    <option value="Economy">Economy</option>
+                  </select>
+                </div>
+
+                {/* Serial Number and Identification */}
+                <div className="md:col-span-2 mt-6">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <FileText className="w-5 h-5 text-purple-400" />
+                    <h4 className="text-lg font-semibold text-slate-100">
+                      Identification
+                    </h4>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-300">
+                    Serial Number *
                   </label>
                   <input
                     type="text"
-                    value={newResource.specification}
+                    value={newResource.serialNumber}
                     onChange={(e) =>
-                      handleInputChange("specification", e.target.value)
+                      handleInputChange("serialNumber", e.target.value)
                     }
                     className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    placeholder="Enter specifications"
+                    placeholder="Enter serial number (2-50 chars)"
+                    minLength={2}
+                    maxLength={50}
+                    required
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300">
-                    Resource Class
+                    Batch ID
                   </label>
                   <input
-                    type="text"
-                    value={newResource.resourceClass}
+                    type="number"
+                    value={newResource.batchId}
                     onChange={(e) =>
-                      handleInputChange("resourceClass", e.target.value)
+                      handleInputChange("batchId", e.target.value)
                     }
                     className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    placeholder="Enter resource class"
+                    placeholder="Enter batch ID (optional)"
+                    min="1"
                   />
                 </div>
 
@@ -598,32 +636,33 @@ const Inventory = () => {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300">
-                    Unit Price
+                    Unit Price *
                   </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={newResource.unitPrice}
-                      onChange={(e) =>
-                        handleInputChange("unitPrice", e.target.value)
-                      }
-                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                      placeholder="0.00"
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={newResource.unitPrice}
+                    onChange={(e) =>
+                      handleInputChange("unitPrice", e.target.value)
+                    }
+                    className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                    placeholder="0.00"
+                    required
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300">
-                    Status
+                    Status *
                   </label>
                   <select
-                    value={newResource.resourceStatus}
+                    value={newResource.resourceStatusName}
                     onChange={(e) =>
-                      handleInputChange("resourceStatus", e.target.value)
+                      handleInputChange("resourceStatusName", e.target.value)
                     }
                     className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                    required
                   >
                     <option value="In Stock">In Stock</option>
                     <option value="Low Stock">Low Stock</option>
@@ -631,19 +670,19 @@ const Inventory = () => {
                   </select>
                 </div>
 
-                {/* Dates & Tracking Section */}
+                {/* Dates Section */}
                 <div className="md:col-span-2 mt-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Calendar className="w-5 h-5 text-blue-400" />
                     <h4 className="text-lg font-semibold text-slate-100">
-                      Dates & Tracking
+                      Dates
                     </h4>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300">
-                    Purchase Date
+                    Purchase Date *
                   </label>
                   <input
                     type="date"
@@ -652,6 +691,7 @@ const Inventory = () => {
                       handleInputChange("purchaseDate", e.target.value)
                     }
                     className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                    required
                   />
                 </div>
 
@@ -666,21 +706,6 @@ const Inventory = () => {
                       handleInputChange("warrantyExpiry", e.target.value)
                     }
                     className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">
-                    Batch Code
-                  </label>
-                  <input
-                    type="text"
-                    value={newResource.batchCode}
-                    onChange={(e) =>
-                      handleInputChange("batchCode", e.target.value)
-                    }
-                    className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    placeholder="Enter batch code"
                   />
                 </div>
 
@@ -779,15 +804,6 @@ const Inventory = () => {
                       Basic Information
                     </h4>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-400">
-                    Resource Code
-                  </label>
-                  <p className="text-slate-100 font-medium text-lg bg-[#21222d] px-4 py-3 rounded-xl">
-                    {selectedResource.resourceCode}
-                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -901,10 +917,10 @@ const Inventory = () => {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-400">
-                    Batch Code
+                    Serial Number
                   </label>
                   <p className="text-slate-100 font-medium bg-[#21222d] px-4 py-3 rounded-xl">
-                    {selectedResource.batchCode || "N/A"}
+                    {selectedResource.serialNumber || "N/A"}
                   </p>
                 </div>
 

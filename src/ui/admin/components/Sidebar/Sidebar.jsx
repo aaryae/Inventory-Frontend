@@ -88,7 +88,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 Admin User
               </p>
               <p className="text-xs text-slate-400 truncate">
-                admin@example.com
+                admin@hotmail.com
               </p>
             </div>
           </div>

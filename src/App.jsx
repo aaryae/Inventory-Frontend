@@ -5,6 +5,7 @@ import {
   RouterProvider,
 } from "react-router-dom";
 
+import Assignment from "./ui/admin/pages/Assignment/Assignment";
 import Dashboard from "./ui/admin/pages/Dashboard/Dashboard";
 import Inventory from "./ui/admin/pages/Inventory/Inventory";
 import Users from "./ui/admin/pages/Users/Users";
@@ -46,7 +47,7 @@ const router = createBrowserRouter([
       { index: true, element: <Dashboard /> },
       { path: "users", element: <Users /> },
       { path: "inventory", element: <Inventory /> },
-      { path: "assignment", element: <Inventory /> },
+      { path: "assignment", element: <Assignment /> },
     ],
   },
   {

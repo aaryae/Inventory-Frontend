@@ -3,13 +3,14 @@ import { Link } from "react-router-dom";
 
 const Logo = () => {
   return (
-    <Link to="/">
+    <Link to="/user">
       <div
         className={`flex justify-center items-center w-fit p-1 gap-2 cursor-pointer `}
       >
         {/* <img src={image.logo} alt="" width={150} /> */}
-        <h1 className="text-3xl font-bold text-center">IMS</h1>
-
+        <h1 className="text-4xl font-bold text-center border-b-4 border-t-4 border-white">
+          IMS
+        </h1>
       </div>
     </Link>
   );
