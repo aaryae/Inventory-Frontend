@@ -10,6 +10,7 @@ import Inventory from "./ui/admin/pages/Inventory/Inventory";
 import Users from "./ui/admin/pages/Users/Users";
 import AdminTemplate from "./ui/admin/templates/AdminTemplate";
 import ProtectedRoute from "./ui/ProtectedRoute";
+import Hero from "./ui/user/components/hero/Hero";
 import ForgotPassword from "./ui/user/pages/ForgotPassword";
 import Login from "./ui/user/pages/Login";
 import Register from "./ui/user/pages/Register";
@@ -55,6 +56,7 @@ const router = createBrowserRouter([
         <LandingTemplate />
       </ProtectedRoute>
     ),
+    children: [{ index: true, element: <Hero /> }],
   },
 ]);
 
