@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.0",
+    "@okta/okta-auth-js": "^7.13.0",
+    "@okta/okta-react": "^6.10.0",
     "@tailwindcss/vite": "^4.1.11",
     "axios": "^1.11.0",
     "lucide-react": "^0.525.0",
