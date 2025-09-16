@@ -12,15 +12,15 @@ const AdminTemplate = () => {
 
   return (
     <div className="flex h-screen" style={{ background: "#171821" }}>
-      {/* Sidebar */}
+   
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       
-      {/* Main Content */}
+      
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
+       
         <Header toggleSidebar={toggleSidebar} />
         
-        {/* Page Content */}
+        
         <main
           className="flex-1 overflow-y-auto"
           style={{ background: "#21222d" }}

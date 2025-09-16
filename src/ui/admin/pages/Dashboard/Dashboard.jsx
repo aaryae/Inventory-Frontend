@@ -14,6 +14,11 @@ import StatCard from "../../components/Dashboard/StatCard";
 
 const Dashboard = () => {
   const [usercount, setUserCount] = useState("");
+  const [username, setUsername] = useState("");
+   useEffect(() => {
+    const name = localStorage.getItem("username") || "User";
+    setUsername(name);
+  }, []);
   const stats = [
     {
       title: "Total Users",
@@ -93,26 +98,28 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-[edf3ff] text-white">
-      {/* Page Header */}
+
+        <div className="flex flex-col items-center justify-center mt-16 py-16 space-y-6 bg-gray-800/50 backdrop-blur-md mx-6 my-8 rounded-3xl shadow-2xl border border-gray-700">
+            <h1 className="text-4xl sm:text-5xl font-extrabold mt-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500 animate-gradient-x">
+              Hello <span className="text-purple-400">{username}</span>!
+            </h1>
+            <h2 className="text-xl sm:text-2xl text-gray-200 text-center">
+              Welcome to the <span className="font-semibold text-cyan-400">Inventory Management System</span>
+            </h2>
+          </div>
       <div className="p-6 border-b border-gray-700">
         <h1 className="text-4xl  font-bold">Dashboard</h1>
         <p className=" mt-2 text-[#ffffffbd]">
           Welcome back! Here's what's happening with your inventory.
         </p>
       </div>
-
-      {/* Main Content */}
       <div className="p-6">
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, index) => (
             <StatCard key={index} {...stat} />
           ))}
         </div>
-
-        {/* Additional Content */}
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Resource Count Chart */}
           <div className="lg:col-span-2">
             {loading ? (
               <div className="text-center text-slate-400 py-8">
@@ -123,7 +130,7 @@ const Dashboard = () => {
             )}
           </div>
         </div>
-        {/* Content Grid */}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 py-6">
           <div className="lg:col-span-1">
             <QuickActions />

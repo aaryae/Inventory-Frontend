@@ -30,7 +30,7 @@ const resetSchema = yup.object().shape({
 });
 
 const ForgotPassword = () => {
-  const [step, setStep] = useState(1); // 1: email, 2: code + password
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     email: "",
     code: "",
@@ -44,8 +44,6 @@ const ForgotPassword = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    // For code input, only allow digits and limit to 6 characters
     if (name === "code") {
       const digitsOnly = value.replace(/\D/g, "").slice(0, 6);
       setFormData((prev) => ({
@@ -58,8 +56,6 @@ const ForgotPassword = () => {
         [name]: value,
       }));
     }
-
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
@@ -122,7 +118,7 @@ const ForgotPassword = () => {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          "Failed to send reset code. Please try again."
+        "Failed to send reset code. Please try again."
       );
     } finally {
       setLoading(false);
@@ -153,7 +149,7 @@ const ForgotPassword = () => {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          "Failed to reset password. Please check your code and try again."
+        "Failed to reset password. Please check your code and try again."
       );
     } finally {
       setLoading(false);
@@ -190,9 +186,9 @@ const ForgotPassword = () => {
 
   if (step === 1) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0f1018] from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
-          {/* Header */}
+
           <div className="text-center mb-8">
             <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
               <svg
@@ -209,20 +205,20 @@ const ForgotPassword = () => {
                 />
               </svg>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            <h2 className="text-3xl font-bold text-white mb-2">
               Forgot password?
             </h2>
-            <p className="text-gray-600">
+            <p className="text-white text-gray-300">
               Enter your email to receive a verification code
             </p>
           </div>
 
-          {/* Form Card */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+
+          <div className="rounded-2xl border border-[#21222d] bg-[#171821]/90 backdrop-blur-lg shadow-2xl p-8">
             <form onSubmit={handleEmailSubmit} className="space-y-6">
-              {/* Email Field */}
+
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-m font-semibold text-white mb-2">
                   Email Address
                 </label>
                 <div className="relative">
@@ -246,11 +242,10 @@ const ForgotPassword = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                      errors.email
-                        ? "border-red-300 bg-red-50"
-                        : "border-gray-300 hover:border-gray-400"
-                    }`}
+                    className={`w-full pl-10 pr-4 text-white py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.email
+                      ? "border-red-300 bg-red-50"
+                      : "border-gray-300 hover:border-gray-400"
+                      }`}
                     placeholder="Enter your email address"
                   />
                 </div>
@@ -300,11 +295,10 @@ const ForgotPassword = () => {
                 </div>
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
+                className="w-full bg-gradient-to-r from-sky-400 to-blue-500 text-white py-3 px-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
               >
                 {loading ? (
                   <>
@@ -334,14 +328,15 @@ const ForgotPassword = () => {
                 )}
               </button>
 
-              {/* Back to Login Button */}
+
+
               <button
                 type="button"
                 onClick={handleBackToLogin}
-                className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-all duration-200 flex items-center justify-center"
+                className="w-full bg-purple-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-purple-700 transition-all duration-200 flex items-center justify-center shadow-md"
               >
                 <svg
-                  className="h-4 w-4 mr-2"
+                  className="h-4 w-4 mr-2 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -355,12 +350,14 @@ const ForgotPassword = () => {
                 </svg>
                 Back to login
               </button>
+
             </form>
+
           </div>
 
-          {/* Footer */}
+
           <div className="text-center mt-8">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-white">
               Need help? Contact our support team
             </p>
           </div>
@@ -370,9 +367,8 @@ const ForgotPassword = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center p-4">
+    <div className="min-h-screen  bg-[#0f1018] via-white to-emerald-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="mx-auto h-16 w-16 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
             <svg
@@ -389,25 +385,28 @@ const ForgotPassword = () => {
               />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+
+          <h2 className="text-3xl font-bold text-white mb-2">
             Enter verification code
           </h2>
-          <p className="text-gray-600">We sent a 6-digit code to</p>
-          <p className="text-gray-900 font-medium">{formData.email}</p>
+          <p className="text-white">We sent a 6-digit code to</p>
+          <p className="text-gray-200 font-medium">{formData.email}</p>
         </div>
 
-        {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+
+
+
+        <div className="rounded-2xl border border-[#21222d] bg-gray-800 backdrop-blur-lg shadow-2xl p-8">
           <form onSubmit={handleResetSubmit} className="space-y-6">
-            {/* Verification Code Field */}
+
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-m font-semibold text-white mb-2">
                 Verification Code
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg
-                    className="h-5 w-5 text-gray-400"
+                    className="h-5 w-5 text-gray-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -425,15 +424,17 @@ const ForgotPassword = () => {
                   name="code"
                   value={formData.code}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 text-center text-lg font-mono tracking-widest ${
-                    errors.code
-                      ? "border-red-300 bg-red-50"
-                      : "border-gray-300 hover:border-gray-400"
-                  }`}
+                  className={`w-full pl-10 pr-4 py-3 border rounded-xl bg-white text-gray-900
+      focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200
+      text-center text-lg font-mono tracking-widest 
+      ${errors.code ? "border-red-300" : "border-gray-300 hover:border-gray-400"}`}
                   placeholder="000000"
                   maxLength="6"
                 />
               </div>
+
+
+
               {errors.code && (
                 <p className="mt-2 text-sm text-red-600 flex items-center">
                   <svg
@@ -452,15 +453,15 @@ const ForgotPassword = () => {
               )}
             </div>
 
-            {/* New Password Field */}
+
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-white mb-2">
                 New Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg
-                    className="h-5 w-5 text-gray-400"
+                    className="h-5 w-5 text-gray-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -478,11 +479,9 @@ const ForgotPassword = () => {
                   name="newPassword"
                   value={formData.newPassword}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 ${
-                    errors.newPassword
-                      ? "border-red-300 bg-red-50"
-                      : "border-gray-300 hover:border-gray-400"
-                  }`}
+                  className={`w-full pl-10 pr-12 py-3 border rounded-xl bg-white text-gray-900
+      focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 
+      ${errors.newPassword ? "border-red-300" : "border-gray-300 hover:border-gray-400"}`}
                   placeholder="Enter new password"
                 />
                 <button
@@ -527,6 +526,7 @@ const ForgotPassword = () => {
                   )}
                 </button>
               </div>
+
               {errors.newPassword && (
                 <p className="mt-2 text-sm text-red-600 flex items-center">
                   <svg
@@ -544,16 +544,14 @@ const ForgotPassword = () => {
                 </p>
               )}
             </div>
-
-            {/* Confirm Password Field */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-white mb-2">
                 Confirm New Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg
-                    className="h-5 w-5 text-gray-400"
+                    className="h-5 w-5 text-gray-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -571,11 +569,9 @@ const ForgotPassword = () => {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 ${
-                    errors.confirmPassword
-                      ? "border-red-300 bg-red-50"
-                      : "border-gray-300 hover:border-gray-400"
-                  }`}
+                  className={`w-full pl-10 pr-12 py-3 border rounded-xl bg-white text-gray-900
+      focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200
+      ${errors.confirmPassword ? "border-red-300" : "border-gray-300 hover:border-gray-400"}`}
                   placeholder="Confirm new password"
                 />
                 <button
@@ -620,6 +616,8 @@ const ForgotPassword = () => {
                   )}
                 </button>
               </div>
+
+
               {errors.confirmPassword && (
                 <p className="mt-2 text-sm text-red-600 flex items-center">
                   <svg
@@ -672,7 +670,7 @@ const ForgotPassword = () => {
               )}
             </button>
 
-            {/* Action Buttons */}
+
             <div className="space-y-3">
               <button
                 type="button"
@@ -732,9 +730,12 @@ const ForgotPassword = () => {
           </form>
         </div>
 
-        {/* Footer */}
+
+
+
+
         <div className="text-center mt-8">
-          <p className="text-sm text-gray-500">Code expires in 10 minutes</p>
+          <p className="text-sm text-gray-200">Code expires in 10 minutes</p>
         </div>
       </div>
     </div>

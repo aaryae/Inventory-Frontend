@@ -1,16 +1,4 @@
-import {
-  Calendar,
-  DollarSign,
-  Eye,
-  FileText,
-  Package,
-  Pencil,
-  Plus,
-  Tag,
-  Trash2,
-  X,
-  Zap,
-} from "lucide-react";
+import { Calendar, DollarSign, Eye, FileText, Package, Pencil, Plus, Tag, Trash2, X, Zap, } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -18,12 +6,14 @@ import {
   deleteResource,
   getResourceById,
   getResources,
-} from "../../../../services/resourceService";
-import InventoryFilters from "./InventoryFilters"; // Adjust path as needed
+  updateResource
+} from "../../../../services/inventory/resourceService";
+import { getMasterStatus, getMasterClass, getMasterType } from "../../../../services/master/masterservices";
+import InventoryFilters from "./InventoryFilters";
 
 const Inventory = () => {
   const [inventory, setInventory] = useState([]);
-  const [originalInventory, setOriginalInventory] = useState([]); // Store original data
+  const [originalInventory, setOriginalInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -32,8 +22,16 @@ const Inventory = () => {
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editResource, setEditResource] = useState(null);
+  const [status, setStatus] = useState([]);
+  const [resourceTypes, setResourceTypes] = useState([]);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [resourceIdToDelete, setResourceIdToDelete] = useState(null);
 
-  // Form state for adding new resource - Updated to match DTO
+const [originalResource, setOriginalResource] = useState(null);
+  const [resourceClasses, setResourceClasses] = useState([]);
+  const [formErrors, setFormErrors] = useState({});
   const [newResource, setNewResource] = useState({
     brand: "",
     model: "",
@@ -49,18 +47,82 @@ const Inventory = () => {
     batchId: "",
   });
 
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const name = localStorage.getItem("username") || "User";
+    console.log("Logged In Username:", name);
+
+    if (name === "admin") {
+      setIsAdmin(true);
+    }
+  }, []);
   useEffect(() => {
     fetchInventory();
   }, []);
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const response = await getMasterStatus();
+        if (response.success) {
+          const statusNames = response.data.map(
+            (item) => item.resourceStatusName
+          );
+          setStatus(statusNames);
+        }
+      } catch (exception) {
+        console.error("Error fetching status:", exception);
+      }
+    };
+    fetchStatus();
+  }, []);
+  useEffect(() => {
+    const fetchType = async () => {
+      try {
+        const response = await getMasterType();
+        console.log("Fetched Resource Types:", response);
+        if (response.success) {
+          const typeNames = response.data.map(
+            (item) => item.resourceTypeName
+          );
+          setResourceTypes(typeNames);
+        }
+      } catch (exception) {
+        console.error("Error fetching status:", exception);
+      }
+    };
+    fetchType();
+  }, []);
+
+  useEffect(() => {
+    const fetchClass = async () => {
+      try {
+        const response = await getMasterClass();
+        console.log("Fetched Resource Classes:", response);
+        if (response.success) {
+          const classNames = response.data.map(
+            (item) => item.resourceClassName
+          );
+          setResourceClasses(classNames);
+        }
+      } catch (exception) {
+        console.error("Error fetching class:", exception);
+      }
+    };
+    fetchClass();
+  }, []);
+
+
 
   const fetchInventory = async () => {
     setLoading(true);
     try {
       const response = await getResources();
+      console.log("Fetched Inventory:", response);
       if (response.success) {
         const data = response.data || [];
         setInventory(data);
-        setOriginalInventory(data); // Store original data
+        setOriginalInventory(data);
       } else {
         toast.error(response.message || "Failed to fetch resources");
       }
@@ -71,12 +133,12 @@ const Inventory = () => {
     }
   };
 
-  // Handler for when filtered data is received from advanced search
+
   const handleFilteredData = (filteredData) => {
     setInventory(filteredData);
   };
 
-  // Handler for resetting to original data
+
   const handleResetData = () => {
     setInventory(originalInventory);
   };
@@ -95,14 +157,49 @@ const Inventory = () => {
     }
   };
 
+
+
+  const handleEditResource = async (resourceId) => {
+  console.log("Editing Resource ID:", resourceId);
+  if (!resourceId) {
+    toast.error("Resource ID is missing");
+    return;
+  }
+
+  try {
+    const res = await getResourceById(resourceId);
+    if (res.success) {
+      setEditResource(res.data);
+      setOriginalResource(res.data);
+      setIsEditModalOpen(true);
+    } else {
+      toast.error(res.message || "Failed to fetch resource details");
+    }
+  } catch (error) {
+    toast.error("Error fetching resource");
+    console.error(error);
+  }
+};
+
+
+
+const buildUpdatePayload = (original, updated) => {
+  const changes = {};
+  Object.keys(updated).forEach((key) => {
+    if (updated[key] !== original[key]) {
+      changes[key] = updated[key];
+    }
+  });
+  return changes;
+};
+
+
   const handleDeleteResource = async (resourceId) => {
-    if (!window.confirm("Are you sure you want to delete this resource?"))
-      return;
     try {
       const response = await deleteResource(resourceId);
       if (response.success) {
         toast.success("Resource deleted successfully");
-        await fetchInventory(); // Refresh data after deletion
+        await fetchInventory();
       } else {
         toast.error(response.message || "Failed to delete resource");
       }
@@ -110,56 +207,61 @@ const Inventory = () => {
       toast.error("Failed to delete resource");
     }
   };
+  const validateResourceForm = () => {
+    const errors = {};
+
+    if (!newResource.brand.trim()) errors.brand = "Brand is required";
+    if (!newResource.model.trim()) errors.model = "Model is required";
+    if (!newResource.specification.trim()) errors.specification = "Specification is required";
+    if (!newResource.purchaseDate) errors.purchaseDate = "Purchase date is required";
+    if (!newResource.resourceTypeName) errors.resourceTypeName = "Resource type is required";
+    if (!newResource.resourceClassName) errors.resourceClassName = "Resource class is required";
+
+    return errors;
+  };
+
+
 
   const handleAddResource = async (e) => {
     e.preventDefault();
+
+    const errors = validateResourceForm();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast.error("Please fill all required fields");
+      return;
+    }
+    setFormErrors({});
     setAddLoading(true);
 
+
+    const resourcePayload = {
+      brand: newResource.brand.trim(),
+      model: newResource.model.trim(),
+      specification: newResource.specification.trim(),
+      purchaseDate: newResource.purchaseDate,
+      warrantyExpiry: newResource.warrantyExpiry || null,
+      resourceTypeName: newResource.resourceTypeName,
+      resourceClassName: newResource.resourceClassName,
+      resourceStatusName: newResource.resourceStatusName,
+      serialNumber: newResource.serialNumber.trim(),
+      unitPrice: parseFloat(newResource.unitPrice),
+      remarks: newResource.remarks.trim() ? newResource.remarks.trim() : null,
+      batchId: newResource.batchId ? parseInt(newResource.batchId, 10) : null,
+    };
+
+    const wrapperPayload = {
+      resources: [resourcePayload],
+    };
+
     try {
-      // Validate required fields based on DTO
-      const requiredFields = [
-        "brand",
-        "model",
-        "specification",
-        "purchaseDate",
-        "resourceTypeName",
-        "resourceClassName",
-        "resourceStatusName",
-        "unitPrice",
-        "serialNumber",
-      ];
+      const response = await createResource(wrapperPayload);
 
-      const missingFields = requiredFields.filter((field) => {
-        const value = newResource[field];
-        return !value || (typeof value === "string" && !value.trim());
-      });
-
-      if (missingFields.length > 0) {
-        toast.error(`Please fill in: ${missingFields.join(", ")}`);
-        setAddLoading(false);
-        return;
-      }
-
-      // Prepare payload according to DTO structure
-      const resourcePayload = {
-        brand: newResource.brand.trim(),
-        model: newResource.model.trim(),
-        specification: newResource.specification.trim(),
-        purchaseDate: newResource.purchaseDate,
-        warrantyExpiry: newResource.warrantyExpiry || null,
-        resourceTypeName: newResource.resourceTypeName,
-        resourceClassName: newResource.resourceClassName,
-        resourceStatusName: newResource.resourceStatusName,
-        unitPrice: parseFloat(newResource.unitPrice),
-        serialNumber: newResource.serialNumber.trim(),
-        remarks: newResource.remarks.trim() || null,
-        batchId: newResource.batchId ? parseInt(newResource.batchId) : null,
-      };
-
-      const response = await createResource({ resources: [resourcePayload] });
       if (response.success) {
         toast.success("Resource added successfully!");
         setShowAddModal(false);
+
+
         setNewResource({
           brand: "",
           model: "",
@@ -174,11 +276,13 @@ const Inventory = () => {
           remarks: "",
           batchId: "",
         });
-        await fetchInventory(); // Refresh data after adding
+
+        await fetchInventory();
       } else {
         toast.error(response.message || "Failed to add resource");
       }
     } catch (error) {
+      console.error("Add resource error:", error);
       toast.error("Failed to add resource");
     } finally {
       setAddLoading(false);
@@ -192,7 +296,7 @@ const Inventory = () => {
     }));
   };
 
-  // Client-side filtering for basic search and category/status filters
+
   const filteredInventory = inventory.filter((item) => {
     const matchesSearch =
       item.resourceCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -234,7 +338,7 @@ const Inventory = () => {
 
   return (
     <div className="p-6">
-      {/* Page Header */}
+
       <div
         className="mb-6 p-6 rounded-2xl border border-[#21222d] shadow-lg"
         style={{ background: "#171821" }}
@@ -284,17 +388,21 @@ const Inventory = () => {
               </div>
             </div>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="mt-4 sm:mt-0 flex items-center space-x-2 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 px-6 py-3 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
-          >
-            <Plus className="w-5 h-5" />
-            <span className="font-medium">Add New Item</span>
-          </button>
+
+          {
+            isAdmin && (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="mt-4 sm:mt-0 flex items-center space-x-2 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 px-6 py-3 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="font-medium">Add New Item</span>
+              </button>
+            )}
         </div>
       </div>
 
-      {/* Filters and Search - Using the separate component */}
+
       <InventoryFilters
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -306,7 +414,7 @@ const Inventory = () => {
         onResetData={handleResetData}
       />
 
-      {/* Inventory Table */}
+
       <div
         className="rounded-2xl border border-[#21222d] shadow-lg overflow-hidden"
         style={{ background: "#171821" }}
@@ -334,10 +442,16 @@ const Inventory = () => {
                   Class
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                  Batch ID
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                   Unit Price
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                  Status
+                  Serial No
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
                   Purchase Date
@@ -394,11 +508,6 @@ const Inventory = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
                       {item.resourceClass || "N/A"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-slate-300">
-                      {item.unitPrice
-                        ? `${parseFloat(item.unitPrice).toFixed(2)}`
-                        : "N/A"}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(
@@ -408,6 +517,16 @@ const Inventory = () => {
                         {item.resourceStatus}
                       </span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-300">
+                      {item.batchId || "N/A"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-300">
+                      {item.unitPrice || "N/A"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-300">
+                      {item.serialNumber || "N/A"}
+                    </td>
+
                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
                       {item.purchaseDate || "N/A"}
                     </td>
@@ -423,20 +542,31 @@ const Inventory = () => {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          className="text-yellow-400 hover:text-yellow-300 p-2 rounded-lg hover:bg-yellow-400/10 transition-all"
-                          title="Edit Resource"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteResource(item.resourceId)}
-                          className="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-400/10 transition-all"
-                          title="Delete Resource"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {isAdmin && (
+                          <>
+                            <button
+                              onClick={() => handleEditResource(item.resourceId)}
+                              className="text-yellow-400 hover:text-yellow-300 p-2 rounded-lg hover:bg-yellow-400/10 transition-all"
+                              title="Edit Resource"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setResourceIdToDelete(item.resourceId);
+                                setShowConfirm(true);
+                              }}
+                              className="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-400/10 transition-all"
+                              title="Delete Resource"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+
+                          </>
+                        )}
                       </div>
+
+
                     </td>
                   </tr>
                 ))
@@ -444,9 +574,40 @@ const Inventory = () => {
             </tbody>
           </table>
         </div>
+
+        {showConfirm && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+            <div className="bg-white rounded-xl p-6 shadow-lg max-w-sm w-full">
+              <h2 className="text-lg font-semibold text-gray-800">Confirm Delete</h2>
+              <p className="text-gray-600 mt-2">
+                Are you sure you want to delete this resource? This action cannot be undone.
+              </p>
+
+              <div className="mt-4 flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    handleDeleteResource(resourceIdToDelete);
+                    setShowConfirm(false);
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
-      {/* Add New Resource Modal */}
+
+
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-[#171821] rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-[#21222d] shadow-2xl">
@@ -476,7 +637,6 @@ const Inventory = () => {
 
             <form onSubmit={handleAddResource} className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Basic Information Section */}
                 <div className="md:col-span-2">
                   <div className="flex items-center space-x-2 mb-4">
                     <Tag className="w-5 h-5 text-cyan-400" />
@@ -487,35 +647,37 @@ const Inventory = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">
-                    Brand *
-                  </label>
+                  <label className="text-sm font-medium text-slate-300">Brand *</label>
                   <input
                     type="text"
                     value={newResource.brand}
                     onChange={(e) => handleInputChange("brand", e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                    className={`w-full px-4 py-3 rounded-xl bg-[#21222d] border ${formErrors.brand ? "border-red-500" : "border-[#21222d]"
+                      } text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all`}
                     placeholder="Enter brand name "
                     minLength={2}
                     maxLength={20}
-                    required
                   />
+                  {formErrors.brand && (
+                    <p className="text-red-500 text-sm">{formErrors.brand}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">
-                    Model *
-                  </label>
+                  <label className="text-sm font-medium text-slate-300">Model *</label>
                   <input
                     type="text"
                     value={newResource.model}
                     onChange={(e) => handleInputChange("model", e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                    className={`w-full px-4 py-3 rounded-xl bg-[#21222d] border ${formErrors.model ? "border-red-500" : "border-[#21222d]"
+                      } text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all`}
                     placeholder="Enter model "
                     minLength={2}
                     maxLength={20}
-                    required
                   />
+                  {formErrors.model && (
+                    <p className="text-red-500 text-sm">{formErrors.model}</p>
+                  )}
                 </div>
 
                 <div className="md:col-span-2 space-y-2">
@@ -525,15 +687,16 @@ const Inventory = () => {
                   <input
                     type="text"
                     value={newResource.specification}
-                    onChange={(e) =>
-                      handleInputChange("specification", e.target.value)
-                    }
-                    className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                    onChange={(e) => handleInputChange("specification", e.target.value)}
+                    className={`w-full px-4 py-3 rounded-xl bg-[#21222d] border ${formErrors.specification ? "border-red-500" : "border-[#21222d]"
+                      } text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all`}
                     placeholder="Enter specifications (5-50 chars)"
                     minLength={5}
                     maxLength={50}
-                    required
                   />
+                  {formErrors.specification && (
+                    <p className="text-red-500 text-sm">{formErrors.specification}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -542,22 +705,20 @@ const Inventory = () => {
                   </label>
                   <select
                     value={newResource.resourceTypeName}
-                    onChange={(e) =>
-                      handleInputChange("resourceTypeName", e.target.value)
-                    }
-                    className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    required
+                    onChange={(e) => handleInputChange("resourceTypeName", e.target.value)}
+                    className={`w-full px-4 py-3 rounded-xl bg-[#21222d] border ${formErrors.resourceTypeName ? "border-red-500" : "border-[#21222d]"
+                      } text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all`}
                   >
-                    <option value="">Select type</option>
-                    <option value="Keyboard">Keyboard</option>
-                    <option value="Laptop">Laptop</option>
-                    <option value="Mouse">Mouse</option>
-                    <option value="Monitor">Monitor</option>
-                    <option value="Audio">Audio</option>
-                    <option value="Storage">Storage</option>
-                    <option value="Networking">Networking</option>
-                    <option value="Other">Other</option>
+                    <option value={""}>Select type</option>
+                    {resourceTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
                   </select>
+                  {formErrors.resourceTypeName && (
+                    <p className="text-red-500 text-sm">{formErrors.resourceTypeName}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -566,21 +727,22 @@ const Inventory = () => {
                   </label>
                   <select
                     value={newResource.resourceClassName}
-                    onChange={(e) =>
-                      handleInputChange("resourceClassName", e.target.value)
-                    }
-                    className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    required
+                    onChange={(e) => handleInputChange("resourceClassName", e.target.value)}
+                    className={`w-full px-4 py-3 rounded-xl bg-[#21222d] border ${formErrors.resourceClassName ? "border-red-500" : "border-[#21222d]"
+                      } text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all`}
                   >
-                    <option value="">Select class</option>
-                    <option value="Premium">Premium</option>
-                    <option value="Standard">Standard</option>
-                    <option value="Basic">Basic</option>
-                    <option value="Economy">Economy</option>
+                    <option value={""}>Select Class</option>
+                    {resourceClasses.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
                   </select>
+                  {formErrors.resourceClassName && (
+                    <p className="text-red-500 text-sm">{formErrors.resourceClassName}</p>
+                  )}
                 </div>
 
-                {/* Serial Number and Identification */}
                 <div className="md:col-span-2 mt-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <FileText className="w-5 h-5 text-purple-400" />
@@ -588,6 +750,24 @@ const Inventory = () => {
                       Identification
                     </h4>
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-300">
+                    Unit Price *
+                  </label>
+                  <input
+                    type="number"
+                    value={newResource.unitPrice}
+                    onChange={(e) => handleInputChange("unitPrice", e.target.value)}
+                    className={`w-full px-4 py-3 rounded-xl bg-[#21222d] border ${formErrors.unitPrice ? "border-red-500" : "border-[#21222d]"
+                      } text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all`}
+                    placeholder="Enter unit price"
+                    min="1"
+                    step="0.01"
+                  />
+                  {formErrors.unitPrice && (
+                    <p className="text-red-500 text-sm">{formErrors.unitPrice}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -597,34 +777,30 @@ const Inventory = () => {
                   <input
                     type="text"
                     value={newResource.serialNumber}
-                    onChange={(e) =>
-                      handleInputChange("serialNumber", e.target.value)
-                    }
-                    className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    placeholder="Enter serial number (2-50 chars)"
+                    onChange={(e) => handleInputChange("serialNumber", e.target.value)}
+                    className={`w-full px-4 py-3 rounded-xl bg-[#21222d] border ${formErrors.serialNumber ? "border-red-500" : "border-[#21222d]"
+                      } text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all`}
+                    placeholder="Enter serial number"
                     minLength={2}
                     maxLength={50}
-                    required
                   />
+                  {formErrors.serialNumber && (
+                    <p className="text-red-500 text-sm">{formErrors.serialNumber}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">
-                    Batch ID
-                  </label>
+                  <label className="text-sm font-medium text-slate-300">Batch ID</label>
                   <input
                     type="number"
                     value={newResource.batchId}
-                    onChange={(e) =>
-                      handleInputChange("batchId", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("batchId", e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
                     placeholder="Enter batch ID (optional)"
                     min="1"
                   />
                 </div>
 
-                {/* Financial & Status Section */}
                 <div className="md:col-span-2 mt-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <DollarSign className="w-5 h-5 text-green-400" />
@@ -635,48 +811,25 @@ const Inventory = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">
-                    Unit Price *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={newResource.unitPrice}
-                    onChange={(e) =>
-                      handleInputChange("unitPrice", e.target.value)
-                    }
-                    className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    placeholder="0.00"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">
-                    Status *
-                  </label>
+                  <label className="text-sm font-medium text-slate-300">Status *</label>
                   <select
                     value={newResource.resourceStatusName}
-                    onChange={(e) =>
-                      handleInputChange("resourceStatusName", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("resourceStatusName", e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    required
                   >
-                    <option value="In Stock">In Stock</option>
-                    <option value="Low Stock">Low Stock</option>
-                    <option value="Out of Stock">Out of Stock</option>
+                    <option value={""}>Select status</option>
+                    {status.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                {/* Dates Section */}
                 <div className="md:col-span-2 mt-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Calendar className="w-5 h-5 text-blue-400" />
-                    <h4 className="text-lg font-semibold text-slate-100">
-                      Dates
-                    </h4>
+                    <h4 className="text-lg font-semibold text-slate-100">Dates</h4>
                   </div>
                 </div>
 
@@ -687,12 +840,13 @@ const Inventory = () => {
                   <input
                     type="date"
                     value={newResource.purchaseDate}
-                    onChange={(e) =>
-                      handleInputChange("purchaseDate", e.target.value)
-                    }
-                    className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                    required
+                    onChange={(e) => handleInputChange("purchaseDate", e.target.value)}
+                    className={`w-full px-4 py-3 rounded-xl bg-[#21222d] border ${formErrors.purchaseDate ? "border-red-500" : "border-[#21222d]"
+                      } text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all`}
                   />
+                  {formErrors.purchaseDate && (
+                    <p className="text-red-500 text-sm">{formErrors.purchaseDate}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -702,14 +856,11 @@ const Inventory = () => {
                   <input
                     type="date"
                     value={newResource.warrantyExpiry}
-                    onChange={(e) =>
-                      handleInputChange("warrantyExpiry", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("warrantyExpiry", e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
                   />
                 </div>
 
-                {/* Remarks Section */}
                 <div className="md:col-span-2 mt-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <FileText className="w-5 h-5 text-purple-400" />
@@ -720,20 +871,17 @@ const Inventory = () => {
                 </div>
 
                 <div className="md:col-span-2 space-y-2">
-                  <label className="text-sm font-medium text-slate-300">
-                    Remarks
-                  </label>
+                  <label className="text-sm font-medium text-slate-300">Remarks</label>
                   <textarea
                     value={newResource.remarks}
-                    onChange={(e) =>
-                      handleInputChange("remarks", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("remarks", e.target.value)}
                     rows={4}
                     className="w-full px-4 py-3 rounded-xl bg-[#21222d] border border-[#21222d] text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all resize-none"
                     placeholder="Enter any additional remarks or notes about this resource..."
                   />
                 </div>
               </div>
+
 
               <div className="flex justify-end space-x-4 mt-8 pt-6 border-t border-[#21222d]">
                 <button
@@ -762,11 +910,11 @@ const Inventory = () => {
                 </button>
               </div>
             </form>
+
           </div>
         </div>
       )}
 
-      {/* View Resource Modal */}
       {showResourceModal && selectedResource && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-[#171821] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-[#21222d] shadow-2xl">
@@ -796,7 +944,6 @@ const Inventory = () => {
 
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Basic Information */}
                 <div className="md:col-span-2">
                   <div className="flex items-center space-x-2 mb-4">
                     <Tag className="w-5 h-5 text-cyan-400" />
@@ -823,6 +970,14 @@ const Inventory = () => {
                     {selectedResource.model}
                   </p>
                 </div>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-sm font-medium text-slate-400">
+                    Specification
+                  </label>
+                  <p className="text-slate-100 font-medium bg-[#21222d] px-4 py-3 rounded-xl">
+                    {selectedResource.specification || "N/A"}
+                  </p>
+                </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-400">
@@ -832,15 +987,56 @@ const Inventory = () => {
                     {selectedResource.resourceType}
                   </p>
                 </div>
-
-                <div className="md:col-span-2 space-y-2">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-400">
-                    Specification
+                    Class
                   </label>
                   <p className="text-slate-100 font-medium bg-[#21222d] px-4 py-3 rounded-xl">
-                    {selectedResource.specification || "N/A"}
+                    {selectedResource.resourceClass || "N/A"}
                   </p>
                 </div>
+
+
+
+
+                <div className="md:col-span-2 mt-6">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <DollarSign className="w-5 h-5 text-green-400" />
+                    <h4 className="text-lg font-semibold text-slate-100">
+                      Identification
+                    </h4>
+                  </div>
+                </div>
+
+
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-400">
+                    Unit Price
+                  </label>
+                  <p className="text-slate-100 font-medium bg-[#21222d] px-4 py-3 rounded-xl">
+                    {selectedResource.unitPrice || "N/A"}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-400">
+                    Serial Number
+                  </label>
+                  <p className="text-slate-100 font-medium bg-[#21222d] px-4 py-3 rounded-xl">
+                    {selectedResource.serialNumber || "N/A"}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-400">
+                    Batch ID
+                  </label>
+                  <p className="text-slate-100 font-medium bg-[#21222d] px-4 py-3 rounded-xl">
+                    {selectedResource.batchId || "N/A"}
+                  </p>
+                </div>
+
 
                 {/* Financial & Status */}
                 <div className="md:col-span-2 mt-6">
@@ -852,25 +1048,6 @@ const Inventory = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-400">
-                    Unit Price
-                  </label>
-                  <p className="text-slate-100 font-medium bg-[#21222d] px-4 py-3 rounded-xl">
-                    {selectedResource.unitPrice
-                      ? `${parseFloat(selectedResource.unitPrice).toFixed(2)}`
-                      : "N/A"}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-400">
-                    Class
-                  </label>
-                  <p className="text-slate-100 font-medium bg-[#21222d] px-4 py-3 rounded-xl">
-                    {selectedResource.resourceClass || "N/A"}
-                  </p>
-                </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-400">
@@ -887,7 +1064,7 @@ const Inventory = () => {
                   </div>
                 </div>
 
-                {/* Dates & Tracking */}
+
                 <div className="md:col-span-2 mt-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <Calendar className="w-5 h-5 text-blue-400" />
@@ -915,16 +1092,8 @@ const Inventory = () => {
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-400">
-                    Serial Number
-                  </label>
-                  <p className="text-slate-100 font-medium bg-[#21222d] px-4 py-3 rounded-xl">
-                    {selectedResource.serialNumber || "N/A"}
-                  </p>
-                </div>
 
-                {/* Remarks */}
+
                 {selectedResource.remarks && (
                   <>
                     <div className="md:col-span-2 mt-6">
@@ -953,17 +1122,196 @@ const Inventory = () => {
                   <X className="w-5 h-5" />
                   <span>Close</span>
                 </button>
-                <button className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white rounded-xl transition-all transform hover:scale-105 flex items-center space-x-2">
-                  <Pencil className="w-5 h-5" />
-                  <span>Edit Resource</span>
-                </button>
+                {isAdmin && (
+                  <button
+                    className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white rounded-xl transition-all transform hover:scale-105 flex items-center space-x-2"
+                    onClick={() => handleEditResource(selectedResource.resourceId)}
+                  >
+                    <Pencil className="w-5 h-5" />
+                    <span>Edit Resource</span>
+                  </button>)}
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {isEditModalOpen && editResource && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#171821] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-[#21222d] shadow-2xl">
+            <div className="sticky top-0 bg-[#171821] border-b border-[#21222d] p-6 rounded-t-2xl flex justify-between items-center">
+              <h3 className="text-2xl font-bold text-slate-100">Edit Resource</h3>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-slate-400 hover:text-slate-300 p-2 rounded-lg hover:bg-[#21222d] transition-all"
+                aria-label="Close Edit Modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[
+                  { label: "Brand", key: "brand" },
+                  { label: "Model", key: "model" },
+                  { label: "Specification", key: "specification" },
+                  { label: "Batch Id", key: "batchId", type: "batchId" },       
+                  { label: "Unit Price", key: "unitPrice", type: "number" },
+                  { label: "Serial Number", key: "serialNumber" },
+                  { label: "Purchase Date", key: "purchaseDate", type: "date" },
+                  { label: "Warranty Expiry", key: "warrantyExpiry", type: "date" },
+                ].map(({ label, key, type }) => (
+                  <div key={key} className="space-y-2">
+                    <label className="text-sm font-medium text-slate-400">{label}</label>
+                    <input
+                      type={type || "text"}
+                      value={editResource[key] || ""}
+                      placeholder="N/A"
+                      onChange={(e) =>
+                        setEditResource((prev) => ({
+                          ...prev,
+                          [key]: e.target.value,
+                        }))
+                      }
+                      className="w-full px-4 py-3 rounded-xl border border-[#21222d] bg-[#21222d] text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                  </div>
+                ))}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-400">Type</label>
+                  <select
+                    value={editResource.resourceType || ""}
+                    onChange={(e) =>
+                      setEditResource((prev) => ({
+                        ...prev,
+                        resourceType: e.target.value,
+                      }))
+                    }
+                    className="w-full px-4 py-3 rounded-xl border border-[#21222d] bg-[#21222d] text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  >
+                    <option value="">Select type</option>
+                    {resourceTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-400">Class</label>
+                  <select
+                    value={editResource.resourceClass || ""}
+                    onChange={(e) =>
+                      setEditResource((prev) => ({
+                        ...prev,
+                        resourceClass: e.target.value,
+                      }))
+                    }
+                    className="w-full px-4 py-3 rounded-xl border border-[#21222d] bg-[#21222d] text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  >
+                    <option value="">Select class</option>
+                    {resourceClasses.map((cls) => (
+                      <option key={cls} value={cls}>
+                        {cls}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-400">Status</label>
+                  <select
+                    value={editResource.resourceStatus || ""}
+                    onChange={(e) =>
+                      setEditResource((prev) => ({
+                        ...prev,
+                        resourceStatus: e.target.value,
+                      }))
+                    }
+                    className="w-full px-4 py-3 rounded-xl border border-[#21222d] bg-[#21222d] text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500" >
+                    <option value="">Select status</option>
+                    {status.map((statusName) => (
+                      <option key={statusName} value={statusName}>
+                        {statusName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-sm font-medium text-slate-400">Remarks</label>
+                  <textarea
+                    value={editResource.remarks || ""}
+                    placeholder="N/A"
+                    onChange={(e) =>
+                      setEditResource((prev) => ({
+                        ...prev,
+                        remarks: e.target.value,
+                      }))
+                    }
+                    className="w-full px-4 py-3 rounded-xl border border-[#21222d] bg-[#21222d] text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
+                    rows={4}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-4 mt-8 pt-6 border-t border-[#21222d]">
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-6 py-3 bg-slate-600 text-white rounded-xl hover:bg-slate-700 transition-all"
+                >
+                  Cancel
+                </button>          
+<button
+  onClick={async () => {
+    try {
+      const payload = buildUpdatePayload(originalResource, {
+        ...editResource,
+        purchaseDate: editResource.purchaseDate
+          ? editResource.purchaseDate.split("T")[0]
+          : null,
+        warrantyExpiry: editResource.warrantyExpiry
+          ? editResource.warrantyExpiry.split("T")[0]
+          : null,
+        resourceStatusName: editResource.resourceStatus,
+      });
+
+      if (Object.keys(payload).length === 0) {
+        toast.info("No changes made");
+        return;
+      }
+
+      const update = await updateResource(editResource.resourceId, payload);
+
+      if (update.success) {
+        toast.success("Resource updated successfully");
+        setIsEditModalOpen(false);
+      } else {
+        toast.error(update.message || "Update failed");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error updating resource");
+    }
+  }}
+  className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-xl transition-all transform hover:scale-105"
+>
+  Save Changes
+</button>
+
+
+
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+
+
     </div>
+
   );
 };
 
 export default Inventory;
+
+

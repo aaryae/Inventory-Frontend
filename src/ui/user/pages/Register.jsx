@@ -74,9 +74,10 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 flex items-center justify-center p-4">
+   <div className="min-h-screen flex items-center justify-center p-6 bg-[#0f1018]">
+
       <div className="max-w-md w-full">
-        {/* Header */}
+      
         <div className="text-center mb-8">
           <div className="mx-auto h-16 w-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
             <svg
@@ -93,18 +94,18 @@ const Register = () => {
               />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          <h2 className="text-3xl font-bold text-white mb-2">
             Create account
           </h2>
-          <p className="text-gray-600">Join us today and get started</p>
+        
         </div>
 
-        {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Username Field */}
+       
+           <div className="rounded-3xl border border-[#21222d] bg-[#171821]/90 backdrop-blur-lg shadow-2xl p-10">
+          <form onSubmit={handleSubmit} className="space-y-4">
+          
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+             <label className="block text-lg font-medium text-slate-300 mb-3">
                 Username
               </label>
               <div className="relative">
@@ -130,10 +131,10 @@ const Register = () => {
                   onChange={handleChange}
                   className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 ${
                     errors.username
-                      ? "border-red-300 bg-red-50"
-                      : "border-gray-300 hover:border-gray-400"
+                        ? "border-red-500 bg-red-50 text-red-900"
+                    : "border-[#2a2b36] bg-[#21222d] text-white placeholder-slate-500"
                   }`}
-                  placeholder="Choose a username"
+                  placeholder=" Choose a username"
                 />
               </div>
               {errors.username && (
@@ -154,9 +155,8 @@ const Register = () => {
               )}
             </div>
 
-            {/* Email Field */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+               <label className="block text-lg font-medium text-slate-300 mb-3">
                 Email Address
               </label>
               <div className="relative">
@@ -180,12 +180,12 @@ const Register = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 ${
+                className={`w-full pl-10 px-5 py-3 text-lg rounded-xl border ${
                     errors.email
-                      ? "border-red-300 bg-red-50"
-                      : "border-gray-300 hover:border-gray-400"
+                    ? "border-red-500 bg-red-50 text-red-900"
+                    : "border-[#2a2b36] bg-[#21222d] text-white placeholder-slate-500"
                   }`}
-                  placeholder="Enter your email"
+                  placeholder=" Enter your email"
                 />
               </div>
               {errors.email && (
@@ -206,9 +206,8 @@ const Register = () => {
               )}
             </div>
 
-            {/* Password Field */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+             <label className="block text-lg font-medium text-slate-300 mb-3">
                 Password
               </label>
               <div className="relative">
@@ -232,12 +231,12 @@ const Register = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 ${
+       className={`w-full px-5 pl-10 py-3 text-lg rounded-xl border ${
                     errors.password
-                      ? "border-red-300 bg-red-50"
-                      : "border-gray-300 hover:border-gray-400"
+                      ? "border-red-500 bg-red-50 text-red-900"
+                    : "border-[#2a2b36] bg-[#21222d] text-white placeholder-slate-500"
                   }`}
-                  placeholder="Create a password"
+                  placeholder=" Create a password"
                 />
                 <button
                   type="button"
@@ -298,10 +297,8 @@ const Register = () => {
                 </p>
               )}
             </div>
-
-            {/* Confirm Password Field */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-lg font-medium text-slate-300 mb-3">
                 Confirm Password
               </label>
               <div className="relative">
@@ -325,12 +322,12 @@ const Register = () => {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 ${
+                     className={`w-full pl-10 px-5 py-3 text-lg rounded-xl border ${
                     errors.confirmPassword
-                      ? "border-red-300 bg-red-50"
-                      : "border-gray-300 hover:border-gray-400"
+                        ? "border-red-500 bg-red-50 text-red-900"
+                    : "border-[#2a2b36] bg-[#21222d] text-white placeholder-slate-500"
                   }`}
-                  placeholder="Confirm your password"
+                  placeholder=" Confirm your password"
                 />
                 <button
                   type="button"
@@ -391,8 +388,6 @@ const Register = () => {
                 </p>
               )}
             </div>
-
-            {/* Terms and Conditions */}
             <div className="flex items-start">
               <div className="flex items-center h-5">
                 <input
@@ -405,7 +400,7 @@ const Register = () => {
                 />
               </div>
               <div className="ml-3 text-sm">
-                <label htmlFor="acceptTerms" className="text-gray-700">
+               <label className="block text-lg font-medium text-slate-300 mb-3">
                   I agree to the{" "}
                   <a
                     href="/terms"
@@ -439,8 +434,6 @@ const Register = () => {
                 {errors.acceptTerms}
               </p>
             )}
-
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
@@ -473,9 +466,7 @@ const Register = () => {
                 "Create account"
               )}
             </button>
-          </form>
-
-          {/* Login Link */}
+          </form> 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               Already have an account?{" "}
@@ -488,10 +479,8 @@ const Register = () => {
             </p>
           </div>
         </div>
-
-        {/* Footer */}
         <div className="text-center mt-8">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-white">
             Join thousands of satisfied users
           </p>
         </div>
@@ -501,3 +490,5 @@ const Register = () => {
 };
 
 export default Register;
+
+

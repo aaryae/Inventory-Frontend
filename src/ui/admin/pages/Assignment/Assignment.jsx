@@ -1,5 +1,5 @@
 const Assignment = () => {
-  return <div>Assignment</div>;
+  return <div className="mt-20">Assignment</div>;
 };
 
 export default Assignment;

@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 
 const Header = ({ toggleSidebar }) => {
   const navigate = useNavigate();
+  const name = localStorage.getItem("username") || "User";
+  console.log("Username:", name);
   const [notifications] = useState([
     { id: 1, message: "New user registered", time: "2 min ago", unread: true },
     {
@@ -36,7 +38,6 @@ const Header = ({ toggleSidebar }) => {
       style={{ background: "#171821" }}
     >
       <div className="flex items-center justify-between px-8 py-4">
-        {/* Left side - Mobile menu button and search */}
         <div className="flex items-center space-x-4">
           <button
             onClick={toggleSidebar}
@@ -44,10 +45,8 @@ const Header = ({ toggleSidebar }) => {
           >
             <Menu className="w-6 h-6 text-indigo-400" />
           </button>
-        </div>
-        {/* Right side - Notifications and user menu */}
+        </div>   
         <div className="flex items-center space-x-4">
-          {/* Notifications */}
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
@@ -60,7 +59,7 @@ const Header = ({ toggleSidebar }) => {
                 </span>
               )}
             </button>
-            {/* Notifications dropdown */}
+         
             {showNotifications && (
               <div
                 className="absolute right-0 mt-2 w-80 rounded-xl shadow-2xl border border-[#21222d] z-50"
@@ -103,7 +102,6 @@ const Header = ({ toggleSidebar }) => {
               </div>
             )}
           </div>
-          {/* User menu */}
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
@@ -111,47 +109,51 @@ const Header = ({ toggleSidebar }) => {
             >
               <UserCircle className="w-8 h-8 text-white" />
             </button>
-            {/* User dropdown */}
-            {showUserMenu && (
-              <div
-                className="absolute right-0 mt-2 w-48 rounded-xl shadow-2xl border border-[#21222d] z-50"
-                style={{ background: "#21222d" }}
-              >
-                <div className="py-2">
-                  <Link
-                    to="/admin"
-                    className="block px-4 py-2 text-sm text-slate-300 hover:bg-[#171821]"
-                  >
-                    Dashboard
-                  </Link>
-                  <Link
-                    to="/admin/users"
-                    className="block px-4 py-2 text-sm text-slate-300 hover:bg-[#171821]"
-                  >
-                    Users
-                  </Link>
-                  <Link
-                    to="/admin/inventory"
-                    className="block px-4 py-2 text-sm text-slate-300 hover:bg-[#171821]"
-                  >
-                    Inventory
-                  </Link>
-                  <Link
-                    to="/admin/assignment"
-                    className="block px-4 py-2 text-sm text-slate-300 hover:bg-[#171821]"
-                  >
-                    Assignment
-                  </Link>{" "}
-                  <hr className="border-[#21222d] my-1" />
-                  <a
-                    onClick={handleLogout}
-                    className="block px-4 py-2 text-sm text-red-400 hover:bg-[#171821]"
-                  >
-                    Logout
-                  </a>
-                </div>
-              </div>
-            )}
+        {showUserMenu && (
+  <div
+    className="absolute right-0 mt-2 w-56 rounded-xl shadow-2xl border border-[#21222d] z-50"
+    style={{ background: "#21222d" }}
+  >
+    <div className="py-3 px-4 border-b border-[#2a2b36]">
+      <p className="block px-4 py-2 text-sm text-slate-300 hover:bg-[#171821]"> {name}</p>
+    
+    </div>
+    <div className="py-2">
+      <Link
+        to="/admin"
+        className="block px-4 py-2 text-sm text-slate-300 hover:bg-[#171821]"
+      >
+        Dashboard
+      </Link>
+      <Link
+        to="/admin/users"
+        className="block px-4 py-2 text-sm text-slate-300 hover:bg-[#171821]"
+      >
+        Users
+      </Link>
+      <Link
+        to="/admin/inventory"
+        className="block px-4 py-2 text-sm text-slate-300 hover:bg-[#171821]"
+      >
+        Inventory
+      </Link>
+      <Link
+        to="/admin/assignment"
+        className="block px-4 py-2 text-sm text-slate-300 hover:bg-[#171821]"
+      >
+        Assignment
+      </Link>
+      <hr className="border-[#21222d] my-1" />
+      <a
+        onClick={handleLogout}
+        className="block px-4 py-2 text-sm text-red-400 hover:bg-[#171821] cursor-pointer"
+      >
+        Logout
+      </a>
+    </div>
+  </div>
+)}
+
           </div>
         </div>
       </div>
